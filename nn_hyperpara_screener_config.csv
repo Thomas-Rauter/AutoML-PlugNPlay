@@ -1,0 +1,7 @@
+model_name,neurons,acti_fun,acti_fun_out,epochs,batch_size,noise,optimizer,alpha,lamda,dropout,cost_fun,psi
+Model_1,"10,1",ReLU,Linear,20,32,0,"Adam,0.9,0.999",0.01,0.001,0,MSELoss,1
+Model_2,"10,1",ReLU,Linear,20,32,0,"Adam,0.9,0.999",0.01,0.001,0,MSELoss,1
+Model_3,"10,1",ReLU,Linear,20,32,0,"Adam,0.9,0.999",0.01,0.001,0,MSELoss,1
+Model_4,"10,1",ReLU,Linear,20,32,0,"Adam,0.9,0.999",0.01,0.001,0,MSELoss,1
+Model_5,"10,1",ReLU,Linear,20,32,0,"Adam,0.9,0.999",0.01,0.001,0,MSELoss,1
+Model_6,"458, 414, 396, 140, 233, 95,1",Tanh,Linear,10,64,0.0262,"Adam,0.9,0.999",0.04802,0.000648,0.185,MSELoss,0.645

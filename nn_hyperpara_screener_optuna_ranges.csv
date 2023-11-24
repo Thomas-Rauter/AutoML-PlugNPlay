@@ -1,0 +1,2 @@
+num_hidden_layers,nr_neurons_hidden_layers,acti_fun_hidden_layers,acti_fun_output_layer,nr_epochs,batch_size,gaussian_noise,optimizer,alpha,lamda,dropout,cost_function,psi
+"1, 10","1, 200","ReLU,Sigmoid,Tanh","Linear,Linear","5, 500","64, 128, 256","0.0, 1.0","Adam,Adam","0.01, 0.4","1e-5, 1e-1","0.0, 0.5",MSELoss,"1, 100"

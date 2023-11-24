@@ -1,0 +1,4 @@
+model_name,booster,ntrees,eta,mcw,mds,md,gam,ss,cs_tree,cs_lev,cs_node,lam,al,spw,ml,objective,eval,seed,nthread
+Model_1,gbtree,60,0.3,2,,6,0,0.5,1,1,1,1,,1,,reg:squarederror,rmse,0,16
+Model_2,gbtree,61,0.3,3,,6,0,0.5,1,1,1,1,,1,,reg:squarederror,rmse,0,16
+Model_3,dart, 65, 0.336, 15, 2, 16, 0.219, 0.975, 0.878, 0.719, 0.578, 7.262, 1.198, 88.82, 176,reg:squarederror,rmse,1,16
