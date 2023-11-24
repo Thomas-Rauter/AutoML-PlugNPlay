@@ -1298,12 +1298,12 @@ def optuna_output_to_pdf(study, sublocal_mean_percent_error, sublocal_timestamp,
     param_values.insert(0, 'Optuna_model')
     param_values.append(local_cost_function)
 
-    local_iterations = 7 + local_num_hidden_layers     # The Optimizer is at that pos, and " also need to be added there, because the params of the optimizer should be in one field in the .csv file
+    local_iterations = 8 + local_num_hidden_layers     # The Optimizer is at that pos, and " also need to be added there, because the params of the optimizer should be in one field in the .csv file
 
     for local_i in range(local_iterations):
         if local_i == 1:
             param_values[local_i] = '"' + param_values[local_i]         # Add an " before the first neuron number.
-        elif local_i == local_num_hidden_layers:
+        elif local_i == local_num_hidden_layers + 1:
             param_values[local_i] = param_values[local_i] + '"'         # Add an " after the last neuron number
         elif local_i == local_iterations - 1:
             param_values[local_i] = '"' + param_values[local_i]
@@ -1414,7 +1414,8 @@ def run_optuna_study(local_train_dev_dataframes, local_timestamp, local_n_trials
         for local_i in range(1, num_layers + 1):         # So that the first hidden layer has the number 1 (nr. 0 could be confused with input layer)
             local_num_neurons = trial.suggest_int(f'neurons_hidden_layer_{local_i}', *sublocal_hyperparameter_ranges['nr_neurons_hidden_layers'])
         local_nr_neurons.append(local_num_neurons)
-        local_nr_output_neurons = 1
+        # local_nr_output_neurons = 1
+        local_nr_output_neurons = trial.suggest_int('num_neurons_output_layer', *sublocal_hyperparameter_ranges['num_neurons_output_layer'])
 
         local_acti_fun_type = trial.suggest_categorical('acti_fun', sublocal_hyperparameter_ranges['acti_fun_hidden_layers'])
         local_acti_fun_out_type = trial.suggest_categorical('acti_fun_out', sublocal_hyperparameter_ranges['acti_fun_output_layer'])
@@ -1460,35 +1461,6 @@ def run_optuna_study(local_train_dev_dataframes, local_timestamp, local_n_trials
         local_model, local_optimizer, local_criterion, local_train_loader, local_dev_loader, local_x_dev_tensor, local_y_dev_tensor = prepare_model_training(local_hyperparams, sublocal_train_dev_dataframes, sublocal_input_size)
 
         local_loss_dev = train_and_optionally_plot(local_model, local_train_loader, local_nr_epochs, local_optimizer, local_criterion, local_x_dev_tensor, local_y_dev_tensor, local_noise)
-
-        # for epoch in range(local_nr_epochs):  # Goes from 0 to epochs_num - 1.
-        #     for batch_x, batch_y in local_train_loader:  # The training_loader always delivers a new batch.
-        #         local_optimizer.zero_grad()  # Resets the gradients of the model parameters.
-        #
-        #         # Apply Gaussian noise to the batch (if the hyperparameter local_noise_stddev is set to 0, there is no Gaussian noise added).
-        #         noise = torch.randn_like(batch_x) * local_noise  # noise_stddev is the standard deviation of the noise
-        #         noisy_batch_x = batch_x + noise
-        #
-        #         local_predictions = local_model(noisy_batch_x).squeeze()  # Forward pass
-        #         loss_train = local_criterion(local_predictions, batch_y)  # Compute the loss
-        #         loss_train.backward()  # Backpropagation
-        #         local_optimizer.step()  # Update weights
-        #
-        # Evaluate on the development data
-        # with torch.no_grad():
-        #     local_model.eval()
-        #     local_predictions = local_model(local_x_dev_tensor).squeeze()  # Forward pass on dev set
-        #     local_loss_dev = local_criterion(local_predictions, local_y_dev_tensor)     # MSE on dev set (or whatever criterion currently is)
-        #     # Calculate percentage error
-        #     percentage_errors = torch.abs((local_predictions - local_y_dev_tensor) / local_y_dev_tensor) * 100
-        #
-        #     # Handle cases where the actual value is 0 to avoid division by zero
-        #     percentage_errors[local_y_dev_tensor == 0] = torch.abs(local_predictions - local_y_dev_tensor)[local_y_dev_tensor == 0] * 100
-        #
-        #     # Calculate mean percentage error
-        #     global study_mean_percentage_error      # Export by assigning to a global variable (because the return goes to the optuna module and is not easily accessible)
-        #     study_mean_percentage_error = torch.mean(percentage_errors).item()  # Convert to Python scalar
-        #     study_mean_percentage_error = round(study_mean_percentage_error, 2)
 
         return local_loss_dev
 
