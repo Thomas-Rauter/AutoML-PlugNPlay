@@ -860,6 +860,80 @@ def train_and_optionally_plot(model_to_train, training_loader, epochs_num, train
             loss_train.backward()                                           # Backpropagation
             training_optimizer.step()                                       # Update weights
 
+        with torch.no_grad():
+            model_to_train.eval()
+            local_predictions = model_to_train(x_dev_data).squeeze()  # Forward pass on dev set
+            local_loss_dev = loss_criterion(local_predictions, y_dev_data)
+
+        if not local_inside_optuna:                                         # When run while using Optuna, do not plot anything.
+            # Record training and validation loss
+            training_history['loss_train'].append(loss_train.item())
+            training_history['loss_dev'].append(local_loss_dev.item())
+
+            if (epoch + 1) % plot_every_epochs == 0 or epoch == epochs_num - 1:
+                ax.clear()
+                ax.plot(training_history['loss_train'], label='Train set loss')
+                ax.plot(training_history['loss_dev'], label='Dev set loss')
+                ax.set_title(f"{name_of_model} - Epoch: {epoch + 1}", fontsize=16, fontweight='bold')
+                ax.set_xlabel('Epochs', fontsize=14)
+                ax.set_ylabel('Loss', fontsize=14)
+                ax.set_xlim(0, epochs_num)
+
+                ax.yaxis.grid(True)
+                ax.set_axisbelow(True)
+                ax.legend()
+
+                # Update record lows if current losses are lower
+                current_train_loss = training_history['loss_train'][-1]
+                current_dev_loss = training_history['loss_dev'][-1]
+
+                if current_train_loss < record_low_train_loss:
+                    record_low_train_loss = current_train_loss
+
+                if current_dev_loss < record_low_dev_loss:
+                    record_low_dev_loss = current_dev_loss
+
+                ax.text(0.35, 0.93, f'Train-loss = {round(current_train_loss, 2)} (Lowest: {round(record_low_train_loss, 2)})\n'
+                        f'Dev-loss  = {round(current_dev_loss, 2)} (Lowest: {round(record_low_dev_loss, 2)})',
+                        transform=ax.transAxes, fontsize=12, verticalalignment='top', bbox=dict(boxstyle='round,pad=0.5', facecolor='white', alpha=0.5))
+
+                # Add the current runtime info.
+                end_time = datetime.now()
+                runtime = end_time - start_time
+                hours, remainder = divmod(runtime.total_seconds(), 3600)
+                minutes, seconds = divmod(remainder, 60)
+                runtime_text = f"Runtime: {int(hours)}h {int(minutes)}m {int(seconds)}s"
+
+                # Plot the runtime text
+                ax.text(0.35, 0.73, runtime_text, transform=ax.transAxes, fontsize=12, verticalalignment='top', bbox=dict(boxstyle='round,pad=0.5', facecolor='white', alpha=0.5))
+
+                if local_show_plots:                # Only show the plots when the user decides so.
+                    plt.draw()
+                    plt.pause(0.1)
+
+                if epoch == epochs_num - 1:
+
+                    # Main directory and subdirectory for saving model .pth files
+                    main_directory = 'nn_hyperpara_screener__output'
+                    sub_directory = 'model_pth_files'
+
+                    # Full path for saving the model includes both the main directory and subdirectory
+                    save_directory = os.path.join(main_directory, sub_directory)
+
+                    # Check if the directory exists, and if not, create it
+                    if not os.path.exists(save_directory):
+                        os.makedirs(save_directory)
+
+                    # Create the full path for saving the model, including the timestamp
+                    model_save_path = os.path.join(save_directory, f'{name_of_model}__{local_timestamp}.pth')
+
+                    # Save the model's state dictionary
+                    torch.save(model_to_train.state_dict(), model_save_path)
+
+                    plt.close(local_fig)
+                    return local_fig
+
+    if local_inside_optuna:
         # Evaluate on the development data
         with torch.no_grad():
             model_to_train.eval()
@@ -877,75 +951,7 @@ def train_and_optionally_plot(model_to_train, training_loader, epochs_num, train
             study_mean_percentage_error = torch.mean(percentage_errors).item()  # Convert to Python scalar
             study_mean_percentage_error = round(study_mean_percentage_error, 2)
 
-        if local_inside_optuna:
             return local_loss_dev
-
-        # Record training and validation loss
-        training_history['loss_train'].append(loss_train.item())
-        training_history['loss_dev'].append(local_loss_dev.item())
-
-        if (epoch + 1) % plot_every_epochs == 0 or epoch == epochs_num - 1:
-            ax.clear()
-            ax.plot(training_history['loss_train'], label='Train set loss')
-            ax.plot(training_history['loss_dev'], label='Dev set loss')
-            ax.set_title(f"{name_of_model} - Epoch: {epoch + 1}", fontsize=16, fontweight='bold')
-            ax.set_xlabel('Epochs', fontsize=14)
-            ax.set_ylabel('Loss', fontsize=14)
-            ax.set_xlim(0, epochs_num)
-
-            ax.yaxis.grid(True)
-            ax.set_axisbelow(True)
-            ax.legend()
-
-            # Update record lows if current losses are lower
-            current_train_loss = training_history['loss_train'][-1]
-            current_dev_loss = training_history['loss_dev'][-1]
-
-            if current_train_loss < record_low_train_loss:
-                record_low_train_loss = current_train_loss
-
-            if current_dev_loss < record_low_dev_loss:
-                record_low_dev_loss = current_dev_loss
-
-            ax.text(0.35, 0.93, f'Train-loss = {round(current_train_loss, 2)} (Lowest: {round(record_low_train_loss, 2)})\n'
-                    f'Dev-loss  = {round(current_dev_loss, 2)} (Lowest: {round(record_low_dev_loss, 2)})',
-                    transform=ax.transAxes, fontsize=12, verticalalignment='top', bbox=dict(boxstyle='round,pad=0.5', facecolor='white', alpha=0.5))
-
-            # Add the current runtime info.
-            end_time = datetime.now()
-            runtime = end_time - start_time
-            hours, remainder = divmod(runtime.total_seconds(), 3600)
-            minutes, seconds = divmod(remainder, 60)
-            runtime_text = f"Runtime: {int(hours)}h {int(minutes)}m {int(seconds)}s"
-
-            # Plot the runtime text
-            ax.text(0.35, 0.73, runtime_text, transform=ax.transAxes, fontsize=12, verticalalignment='top', bbox=dict(boxstyle='round,pad=0.5', facecolor='white', alpha=0.5))
-
-            if local_show_plots:                # Only show the plots when the user decides so.
-                plt.draw()
-                plt.pause(0.1)
-
-            if epoch == epochs_num - 1:
-
-                # Main directory and subdirectory for saving model .pth files
-                main_directory = 'nn_hyperpara_screener__output'
-                sub_directory = 'model_pth_files'
-
-                # Full path for saving the model includes both the main directory and subdirectory
-                save_directory = os.path.join(main_directory, sub_directory)
-
-                # Check if the directory exists, and if not, create it
-                if not os.path.exists(save_directory):
-                    os.makedirs(save_directory)
-
-                # Create the full path for saving the model, including the timestamp
-                model_save_path = os.path.join(save_directory, f'{name_of_model}__{local_timestamp}.pth')
-
-                # Save the model's state dictionary
-                torch.save(model_to_train.state_dict(), model_save_path)
-
-                plt.close(local_fig)
-                return local_fig
 
 
 def calculate_mean_percent_error(local_predictions, local_y_dev_tensor):
@@ -1468,7 +1474,7 @@ def run_optuna_study(local_train_dev_dataframes, local_timestamp, local_n_trials
         #         loss_train.backward()  # Backpropagation
         #         local_optimizer.step()  # Update weights
         #
-        # # Evaluate on the development data
+        # Evaluate on the development data
         # with torch.no_grad():
         #     local_model.eval()
         #     local_predictions = local_model(local_x_dev_tensor).squeeze()  # Forward pass on dev set
