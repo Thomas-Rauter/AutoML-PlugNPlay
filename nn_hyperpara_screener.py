@@ -80,9 +80,9 @@ def create_config():
     if not os.path.exists(filename):
         with open(filename, 'w') as file:
             headers = ['model_name', 'neurons', 'acti_fun', 'acti_fun_out', 'epochs', 'batch_size', 'noise',
-                       'optimizer', 'alpha', 'lamda', 'dropout', 'cost_fun', 'psi']
+                       'optimizer', 'alpha', 'lamda', 'dropout', 'psi', 'cost_fun']
             file.write(','.join(headers))
-            starter_model = ["\nModel_1", '"10,1"', "ReLU", "Linear", 100, 64, 0, "Adam,0.9,0.99", 0.01, 0.001, 0, "MSELoss", 1]
+            starter_model = ["\nModel_1", '"10,1"', "ReLU", "Linear", 100, 64, 0, "Adam,0.9,0.99", 0.01, 0.001, 0, 1, "MSELoss"]
             file.write(','.join([str(item) for item in starter_model]))
 
 
@@ -101,7 +101,12 @@ def parse_command_line_args(arguments):
 
     if len(arguments) == 1 and arguments[0] == 'info':
 
-        print("Information about the script and its usage and supported options:")
+        print("Usage: python3 nn_hyperpara_screener.py train_dataset dev_dataset")
+        print("Options: python3 nn_hyperpara_screener.py train_dataset dev_dataset info        -->     Prints info messages to the terminal and terminate script.")
+        print("Options: python3 nn_hyperpara_screener.py config                                -->     Creates config file for manually exploring the hyperparameters and terminate script.")
+        print("--plots   -->   Show loss plots during training; --optuna=10   -->   runs Optuna optimizer instead of manually tuning hyperparameters. 10 is the amount of trials for the Optuna study.")
+        print("##################################################################################################################################################################\n")
+        print("Further info about the script:")
         print("This script takes as command line arguments the filename of the train set and the filename of the dev set located in current working dir (cwd).")
         print("Additionally, it requires the file nn_hyperpara_screener_config.csv to be present in the cwd.")
         print("It outputs 1 pdf-file, called nn_hyperpara_screener_output__ followed by the current date-time.")
@@ -259,8 +264,8 @@ def read_and_process_config(local_nr_examples):
         'alpha': 0.01,
         'lamda': 0.001,
         'dropout': 0,
-        'cost_fun': 'MSELoss',
         'psi': 1,
+        'cost_fun': 'MSELoss',
     }
 
     data_types = {
@@ -275,8 +280,8 @@ def read_and_process_config(local_nr_examples):
         'alpha': float,
         'lamda': float,
         'dropout': float,
+        'psi': float,
         'cost_fun': str,
-        'psi': float
     }
 
     # Read the CSV file
@@ -372,8 +377,8 @@ def check_dataframe_columns(local_df):
         'alpha': lambda local_x: pd.isna(local_x) or isinstance(local_x, (int, float)),
         'lamda': lambda local_x: pd.isna(local_x) or isinstance(local_x, float),
         'dropout': lambda local_x: pd.isna(local_x) or (isinstance(local_x, (int, float)) and 0 <= local_x < 1),
+        'psi': lambda local_x: pd.isna(local_x) or isinstance(local_x, (int, float)),
         'cost_fun': lambda local_x: pd.isna(local_x) or isinstance(local_x, str),
-        'psi': lambda local_x: pd.isna(local_x) or isinstance(local_x, (int, float))
     }
 
     check_config_columns(local_df, required_columns_nn)
@@ -437,50 +442,12 @@ def load_datasets(local_train_set_name, local_dev_set_name):
     return local_train_set_data, local_dev_set_data
 
 
-# def assign_hyperparameters_from_config(pandas_df, row_nr, local_amount_of_rows):
-#
-#     variable_names = ['model_name', 'nr_neurons_str', 'activation_function_type', 'acti_fun_out', 'nr_epochs', 'batch_size',
-#                       'noise_stddev', 'optimizer_type', 'learning_rate', 'lamda', 'dropout', 'cost_function', 'psi_value']
-#     column_names = ['model_name', 'neurons', 'acti_fun', 'acti_fun_out', 'epochs', 'batch_size',
-#                     'noise', 'optimizer', 'alpha','lamda', 'dropout', 'cost_fun',  'psi']
-#
-#     global batch_size
-#     global dropout
-#
-#     for var_name, col_name in zip(variable_names, column_names):
-#         value = pandas_df[col_name].iloc[row_nr]
-#
-#         if var_name == 'nr_neurons_str':                                    # Special treatment for nr_neurons
-#             neuron_list = [int(neuron) for neuron in value.split(',')]
-#             global nr_output_neurons
-#             nr_output_neurons = neuron_list.pop()
-#             globals()['nr_neurons'] = neuron_list
-#         elif var_name in ['nr_epochs', 'batch_size']:
-#             globals()[var_name] = int(value)
-#         elif var_name == 'optimizer_type':
-#             local_split_values = value.split(',')
-#             local_optimizer = local_split_values[0]
-#             local_optim_add_params = [float(item) for item in local_split_values[1:]]
-#         else:
-#             globals()[var_name] = value
-#
-#     if batch_size > local_amount_of_rows:  # The size of one batch cannot exceed the amount of rows.
-#         batch_size = local_amount_of_rows
-#         pandas_df.loc[row_nr, "batch_size"] = batch_size  # Update the value for the respective row.
-#
-#     if dropout >= 1 or dropout < 0:
-#         print("Error: dropout must be smaller than 1 and greater than 0!")
-#         sys.exit()
-#
-#     return local_optimizer, local_optim_add_params
-
-
 def assign_hyperparameters_from_config(local_pandas_df, local_row_nr, local_amount_of_rows):
     local_variable_names = ['model_name', 'nr_neurons_str', 'activation_function_type', 'acti_fun_out', 'nr_epochs',
                             'batch_size', 'noise_stddev', 'optimizer_type', 'learning_rate', 'lamda', 'dropout',
-                            'cost_function', 'psi_value']
+                            'psi_value', 'cost_function']
     local_column_names = ['model_name', 'neurons', 'acti_fun', 'acti_fun_out', 'epochs', 'batch_size',
-                          'noise', 'optimizer', 'alpha', 'lamda', 'dropout', 'cost_fun', 'psi']
+                          'noise', 'optimizer', 'alpha', 'lamda', 'dropout', 'psi', 'cost_fun']
 
     local_hyperparams = {}
 
@@ -790,18 +757,18 @@ def prepare_model_training(local_hyperparams, local_train_dev_dataframes, local_
     A tuple containing the model, optimizer, criterion, train loader, and dev loader.
     """
 
-    local_activation_function_type = local_hyperparams['activation_function_type']
-    local_acti_fun_out = local_hyperparams['acti_fun_out']
     local_nr_neurons = local_hyperparams['nr_neurons_hidden_layers']
     local_nr_output_neurons = local_hyperparams['nr_neurons_output_layer']
-    local_psi_value = local_hyperparams['psi_value']
+    local_activation_function_type = local_hyperparams['activation_function_type']
+    local_acti_fun_out = local_hyperparams['acti_fun_out']
+    local_batch_size = local_hyperparams['batch_size']
     local_optimizer_type = local_hyperparams['optimizer_type']
+    local_optim_add_params = local_hyperparams['optim_add_params']
     local_learning_rate = local_hyperparams['learning_rate']
     local_lamda = local_hyperparams['lamda']
-    local_optim_add_params = local_hyperparams['optim_add_params']
-    local_cost_function = local_hyperparams['cost_function']
-    local_batch_size = local_hyperparams['batch_size']
     local_dropout = local_hyperparams['dropout']
+    local_psi_value = local_hyperparams['psi_value']
+    local_cost_function = local_hyperparams['cost_function']
 
     local_x_train = local_train_dev_dataframes[0]
     local_y_train = local_train_dev_dataframes[1]
@@ -996,17 +963,25 @@ def calculate_mean_percent_error(local_predictions, local_y_dev_tensor):
     return local_mean_percent_error
 
 
-def evaluate_model(model_eval, criterion_eval, x_dev_norm, y_dev_data, model_index, config_df):
+def evaluate_model(model_eval, x_dev_norm, y_dev_data, model_index, config_df):
     """
-    Evaluates the model on the development set and prints various metrics.
+    Evaluates the trained model on the development set, calculates the mean percent error, and generates comparisons between predictions and actual labels for the first ten instances. This provides insights into the model's prediction accuracy and a sample of individual predictions.
 
     Args:
-    model_eval: The trained neural network model.
-    criterion_eval: Loss function used for evaluation.
-    x_dev_norm: Normalized features for the development set.
-    y_dev_data: Actual labels for the development set.
-    model_index: The model number or identifier.
-    config_df: The configuration DataFrame to update the evaluation results.
+    model_eval: The trained neural network model to be evaluated.
+    x_dev_norm: Normalized features for the development set as a NumPy array.
+    y_dev_data: Actual labels for the development set as a NumPy array.
+    model_index: An identifier for the model, used for indexing within the configuration DataFrame.
+    config_df: A DataFrame to record the evaluation results, specifically the mean percent error.
+
+    Returns:
+    local_comparisons: A list of strings, each containing a comparison of predicted and actual values for an individual instance from the development set (limited to the first ten instances).
+
+    The function operates in the following steps:
+    1. Converts the development set features and labels into PyTorch tensors.
+    2. Sets the model to evaluation mode and generates predictions for the development set.
+    3. Calculates the mean percent error between predictions and actual labels and updates this in the provided DataFrame.
+    4. Generates a list of comparison strings between the model's predictions and the actual labels for the first ten instances.
     """
 
     # Convert NumPy arrays to PyTorch tensors
@@ -1113,7 +1088,7 @@ def pandas_df_to_pdf(dataframe, local_timestamp, figure_filenames, filename_data
     # Prepare data for the table (including column headers)
     local_data = [sorted_dataframe.columns.tolist()] + sorted_dataframe.values.tolist()
 
-    additional_row = ['', 'Hyperparameters', '', '', '', '', '', '', '', '', '', '', '', '', '']  # Fewer cells than total columns
+    additional_row = ['', 'Hyperparameters', '', '', '', '', '', '', '', '', '', '', '', '']  # Fewer cells than total columns
     local_data.insert(0, additional_row)
 
     # Create a table with the data
@@ -1128,12 +1103,12 @@ def pandas_df_to_pdf(dataframe, local_timestamp, figure_filenames, filename_data
     style = TableStyle([
         ('FONTSIZE', (0, 0), (-1, -1), font_size),  # Fontsize for all rows of the table.
 
-        ('SPAN', (1, 0), (13, 0)),  # Span the large cell across columns 1 to 11
-        ('SPAN', (14, 0), (14, 0)),  # Span for the last cell in the first row
+        ('SPAN', (1, 0), (12, 0)),  # Span the large cell across columns 1 to 11
+        ('SPAN', (13, 0), (13, 0)),  # Span for the last cell in the first row
 
         # Center align content in the large cell and the small cell afterward
         ('ALIGN', (1, 0), (1, 0), 'CENTER'),  # Center alignment for the large cell
-        ('ALIGN', (14, 0), (14, 0), 'CENTER'),  # Center alignment for the small cell afterward
+        ('ALIGN', (13, 0), (13, 0), 'CENTER'),  # Center alignment for the small cell afterward
 
         # Basic formatting for the very first row
         ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),  # Light background color for first row
@@ -1256,7 +1231,7 @@ def pandas_df_to_pdf(dataframe, local_timestamp, figure_filenames, filename_data
         os.remove(local_img_filename)
 
 
-def optuna_output_to_pdf(study, sublocal_mean_percent_error, sublocal_timestamp):
+def optuna_output_to_pdf(study, sublocal_mean_percent_error, sublocal_timestamp, local_cost_function):
 
     file_path = "./nn_hyperpara_screener__output/optuna_results/optuna_report__{}.pdf".format(sublocal_timestamp)
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
@@ -1312,21 +1287,25 @@ def optuna_output_to_pdf(study, sublocal_mean_percent_error, sublocal_timestamp)
     param_values = [str(v) for v in rounded_params.values()]
 
     # Remove the first element from the list
+    local_num_hidden_layers = int(param_values[0])
     param_values = param_values[1:]  # Keeps all elements of the list except the first one
+    param_values.insert(0, 'Optuna_model')
+    param_values.append(local_cost_function)
+
+    local_iterations = 7 + local_num_hidden_layers     # The Optimizer is at that pos, and " also need to be added there, because the params of the optimizer should be in one field in the .csv file
+
+    for local_i in range(local_iterations):
+        if local_i == 1:
+            param_values[local_i] = '"' + param_values[local_i]         # Add an " before the first neuron number.
+        elif local_i == local_num_hidden_layers:
+            param_values[local_i] = param_values[local_i] + '"'         # Add an " after the last neuron number
+        elif local_i == local_iterations - 1:
+            param_values[local_i] = '"' + param_values[local_i]
+
+    param_values[-6] = param_values[-6] + '"'       # Add an " after the last parameter of the optimizer (or after the optimizer itself).
 
     # Join the strings without spaces after commas
     values_str = ','.join(param_values)
-
-    # Insert the first double quote at the very start
-    values_str = '"' + values_str
-
-    # Find the index of 'alpha'
-    alpha_index = list(rounded_params.keys()).index('alpha') - 1  # Adjusted index after removing the first element
-
-    # Insert the second double quote directly before the comma preceding the 'alpha' value
-    # Calculate position based on number of commas
-    alpha_comma_position = [pos for pos, char in enumerate(values_str) if char == ','][alpha_index - 1]
-    values_str = values_str[:alpha_comma_position] + '"' + values_str[alpha_comma_position:]
 
     # Set font and draw the string
     c.setFont("Helvetica", 6)  # Set back to regular font for the values
@@ -1357,66 +1336,88 @@ def optuna_output_to_pdf(study, sublocal_mean_percent_error, sublocal_timestamp)
             img_y_position = top_position - 220 - (local_i % 3) * (img_height + 5)
 
             c.drawImage(full_path, left_margin, img_y_position, width=img_width, height=img_height, preserveAspectRatio=True)
-            # Delete plot file
-            os.remove(full_path)
+
+            os.remove(full_path)    # Delete plot file
         else:
-            print(f"Plot file not found: {full_path}")
+            print(f"Error: Plot file not found: {full_path}")
+            sys.exit()
 
     # Save the PDF
     c.save()
 
 
-def parse_hyperparameters(csv_file):
-    df = pd.read_csv(csv_file)
-    hyperparameters = {}
-    for column in df.columns:
-        values = str(df[column].values[0])
+def parse_optuna_hyperparameter_ranges(local_csv_file):
+    """
+    Parses a CSV file to extract hyperparameter ranges for Optuna optimization.
+
+    The function reads a CSV file where each column represents a different hyperparameter.
+    It processes each column to determine the type of hyperparameter (e.g., list of categorical options,
+    numerical range, single value) and formats it accordingly for use in hyperparameter optimization.
+
+    Args:
+    local_csv_file: A string representing the path to the CSV file containing hyperparameter configurations.
+
+    Returns:
+    local_hyperparameters: A dictionary where keys are hyperparameter names and values are the respective
+                           hyperparameter configurations (ranges, lists of options, or single values).
+
+    The function supports:
+    - Categorical hyperparameters specified as a comma-separated string.
+    - Numerical ranges specified as a min-max pair, separated by a comma.
+    - Single numerical or categorical values.
+    - Special handling for 'batch_size' to interpret it as a single value or a list of values.
+    """
+
+    local_df = pd.read_csv(local_csv_file)
+    local_hyperparameters = {}
+    for local_column in local_df.columns:
+        local_values = str(local_df[local_column].values[0])
 
         # Special handling for 'batch_size'
-        if column == 'batch_size':
-            if ',' in values:           # It's a list of batch sizes
-                hyperparameters[column] = [int(val.strip()) for val in values.split(',')]
-            else:                       # It's a single batch size
-                hyperparameters[column] = int(values)
-        elif values[0].isalpha():                                     # It's a list of categorical options
-            if ',' in values:
-                hyperparameters[column] = values.split(',')
+        if local_column == 'batch_size':
+            if ',' in local_values:  # It's a list of batch sizes
+                local_hyperparameters[local_column] = [int(val.strip()) for val in local_values.split(',')]
+            else:  # It's a single batch size
+                local_hyperparameters[local_column] = int(local_values)
+        elif local_values[0].isalpha():  # It's a list of categorical options
+            if ',' in local_values:
+                local_hyperparameters[local_column] = local_values.split(',')
             else:
-                hyperparameters[column] = values
-        elif values[0].isdigit():                                   # It's a numerical range
-            if ',' in values:
-                min_val, max_val = map(float, values.split(','))
-                hyperparameters[column] = (min_val, max_val)
+                local_hyperparameters[local_column] = local_values
+        elif local_values[0].isdigit():  # It's a numerical range
+            if ',' in local_values:
+                local_min_val, local_max_val = map(float, local_values.split(','))
+                local_hyperparameters[local_column] = (local_min_val, local_max_val)
             else:
-                hyperparameters[column] = int(values)
-    return hyperparameters
+                local_hyperparameters[local_column] = int(local_values)
+    return local_hyperparameters
 
 
 def run_optuna_study(local_train_dev_dataframes, local_timestamp, local_n_trials, local_input_size):
 
     def objective(trial, sublocal_train_dev_dataframes, sublocal_input_size):
 
-        hyperparameter_ranges = parse_hyperparameters('nn_hyperpara_screener_optuna_ranges.csv')
+        sublocal_hyperparameter_ranges = parse_optuna_hyperparameter_ranges('nn_hyperpara_screener_optuna_ranges.csv')
 
         # Hyperparameters to be tuned by Optuna
         # Hyperparameter range for the number of layers
-        num_layers = trial.suggest_int('num_hidden_layers', *hyperparameter_ranges['num_hidden_layers'])
+        num_layers = trial.suggest_int('num_hidden_layers', *sublocal_hyperparameter_ranges['num_hidden_layers'])
 
         # Dynamically creating hyperparameters for each layer's neuron count
         local_nr_neurons = []
         for local_i in range(1, num_layers + 1):         # So that the first hidden layer has the number 1 (nr. 0 could be confused with input layer)
-            local_num_neurons = trial.suggest_int(f'neurons_hidden_layer_{local_i}', *hyperparameter_ranges['nr_neurons_hidden_layers'])
+            local_num_neurons = trial.suggest_int(f'neurons_hidden_layer_{local_i}', *sublocal_hyperparameter_ranges['nr_neurons_hidden_layers'])
         local_nr_neurons.append(local_num_neurons)
         local_nr_output_neurons = 1
 
-        local_acti_fun_type = trial.suggest_categorical('acti_fun', hyperparameter_ranges['acti_fun_hidden_layers'])
-        local_acti_fun_out_type = trial.suggest_categorical('acti_fun_out', hyperparameter_ranges['acti_fun_output_layer'])
-        local_nr_epochs = trial.suggest_int('nr_epochs', *hyperparameter_ranges['nr_epochs'])
-        local_batch_size = trial.suggest_categorical('batch_size', hyperparameter_ranges['batch_size'])
-        local_noise = trial.suggest_float('noise', *hyperparameter_ranges['gaussian_noise'])
+        local_acti_fun_type = trial.suggest_categorical('acti_fun', sublocal_hyperparameter_ranges['acti_fun_hidden_layers'])
+        local_acti_fun_out_type = trial.suggest_categorical('acti_fun_out', sublocal_hyperparameter_ranges['acti_fun_output_layer'])
+        local_nr_epochs = trial.suggest_int('nr_epochs', *sublocal_hyperparameter_ranges['nr_epochs'])
+        local_batch_size = trial.suggest_categorical('batch_size', sublocal_hyperparameter_ranges['batch_size'])
+        local_noise = trial.suggest_float('noise', *sublocal_hyperparameter_ranges['gaussian_noise'])
 
         # local_optimizer_column_list = hyperparameter_ranges['optimizer'].split(',')
-        local_optimizer_type = trial.suggest_categorical('optimizer', hyperparameter_ranges['optimizer'])
+        local_optimizer_type = trial.suggest_categorical('optimizer', sublocal_hyperparameter_ranges['optimizer'])
 
         # Conditional hyperparameters for the optimizer
         if local_optimizer_type == 'Adam':
@@ -1429,25 +1430,25 @@ def run_optuna_study(local_train_dev_dataframes, local_timestamp, local_n_trials
             print(f"Error: Optimizer name {local_optimizer_type} not valid!")
             sys.exit()
 
-        local_learning_rate = trial.suggest_float('alpha', *hyperparameter_ranges['alpha'], log=True)
-        local_lamda = trial.suggest_float('lamda', *hyperparameter_ranges['lamda'], log=True)
-        local_dropout = trial.suggest_float('dropout', *hyperparameter_ranges['dropout'])
-        local_cost_function = hyperparameter_ranges['cost_function']
-        local_psi = trial.suggest_float('psi', *hyperparameter_ranges['psi'])
+        local_learning_rate = trial.suggest_float('alpha', *sublocal_hyperparameter_ranges['alpha'], log=True)
+        local_lamda = trial.suggest_float('lamda', *sublocal_hyperparameter_ranges['lamda'], log=True)
+        local_dropout = trial.suggest_float('dropout', *sublocal_hyperparameter_ranges['dropout'])
+        sublocal_cost_function = sublocal_hyperparameter_ranges['cost_function']
+        local_psi = trial.suggest_float('psi', *sublocal_hyperparameter_ranges['psi'])
 
         local_hyperparams = {
-            'activation_function_type': local_acti_fun_type,
-            'acti_fun_out': local_acti_fun_out_type,
             'nr_neurons_hidden_layers': local_nr_neurons,
             'nr_neurons_output_layer': local_nr_output_neurons,
-            'psi_value': local_psi,
+            'activation_function_type': local_acti_fun_type,
+            'acti_fun_out': local_acti_fun_out_type,
+            'batch_size': local_batch_size,
             'optimizer_type': local_optimizer_type,
+            'optim_add_params': local_optim_add_params if local_optimizer_type == 'Adam' else [local_momentum],
             'learning_rate': local_learning_rate,
             'lamda': local_lamda,
-            'optim_add_params': local_optim_add_params if local_optimizer_type == 'Adam' else [local_momentum],
-            'cost_function': local_cost_function,
-            'batch_size': local_batch_size,
-            'dropout': local_dropout
+            'dropout': local_dropout,
+            'psi_value': local_psi,
+            'cost_function': sublocal_cost_function,
         }
 
         local_model, local_optimizer, local_criterion, local_train_loader, local_dev_loader, local_x_dev_tensor, local_y_dev_tensor = prepare_model_training(local_hyperparams, sublocal_train_dev_dataframes, sublocal_input_size)
@@ -1502,7 +1503,9 @@ def run_optuna_study(local_train_dev_dataframes, local_timestamp, local_n_trials
     local_fig.write_image("edf.png")
     #################################################################################
 
-    optuna_output_to_pdf(study, study_mean_percentage_error, local_timestamp)       # Generate a report for the Optuna study.
+    local_hyperparameter_ranges = parse_optuna_hyperparameter_ranges('nn_hyperpara_screener_optuna_ranges.csv')
+    local_cost_function = local_hyperparameter_ranges['cost_function']
+    optuna_output_to_pdf(study, study_mean_percentage_error, local_timestamp, local_cost_function)       # Generate a report for the Optuna study.
 
     return study.best_trial.params
 
@@ -1595,7 +1598,7 @@ for model_nr in range(nr_of_models):
     fig = train_and_optionally_plot(model, train_loader, nr_epochs, optimizer, criterion, x_dev_tensor, y_dev_tensor, noise_stddev, inside_optuna, model_name, timestamp, show_plots)
     loss_vs_epoch_figures.append(fig)
 
-    ten_examples_model_predictions = evaluate_model(model, criterion, x_dev, y_dev, model_nr, config)
+    ten_examples_model_predictions = evaluate_model(model, x_dev, y_dev, model_nr, config)
     examples_model_predictions[model_name] = ten_examples_model_predictions                             # Store the predictions in a hash for the pdf.
 
 
