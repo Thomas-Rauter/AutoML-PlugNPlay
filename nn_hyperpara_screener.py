@@ -107,6 +107,8 @@ def parse_command_line_args(arguments):
         print("--plots   -->   Show loss plots during training; --optuna=10   -->   runs Optuna optimizer instead of manually tuning hyperparameters. 10 is the amount of trials for the Optuna study.")
         print("##################################################################################################################################################################\n")
         print("Further info about the script:")
+        print("Input: train-dataset, dev-dataset, and respective config file (with list of models or ranges for Optuna) or only train-dataset and config file in the case of k-fold cross-validation")
+        print("Output: A single Pdf-report about the performance of the models in the case of a list of models or the best model in the case of Optuna and .pth files of the models in the first case")
         print("This script takes as command line arguments the filename of the train set and the filename of the dev set located in current working dir (cwd).")
         print("Additionally, it requires the file nn_hyperpara_screener_config.csv to be present in the cwd.")
         print("It outputs 1 pdf-file, called nn_hyperpara_screener_output__ followed by the current date-time.")
