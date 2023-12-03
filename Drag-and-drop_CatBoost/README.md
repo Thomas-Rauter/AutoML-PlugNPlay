@@ -8,7 +8,8 @@ The .csv file where you want to have the predictions on must only contain the fe
 
 The only thing required for the Bash script to run on Linux and Max and for the .exe file to run on Windows is the availability of the Docker engine. A simple way of getting the Docker engine is through Docker desktop. To get Docker desktop, follow the guidelines on the official site:
 
-Ubuntu:  https://docs.docker.com/desktop/install/ubuntu/
-Mac:     https://docs.docker.com/desktop/install/mac-install/
+Ubuntu:  https://docs.docker.com/desktop/install/ubuntu/                                                                                                               
+
+Mac:     https://docs.docker.com/desktop/install/mac-install/                                                                                                                  
 Windows: https://docs.docker.com/desktop/install/windows-install/
 
