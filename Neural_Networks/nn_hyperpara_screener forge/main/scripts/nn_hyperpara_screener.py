@@ -544,60 +544,124 @@ def load_datasets(fn10_train_set_name, fn10_dev_set_name):
     return fn10_train_set_data, fn10_dev_set_data
 
 
-def assign_hyperparameters_from_config(local_pandas_df, local_row_nr, local_amount_of_rows):
-    local_variable_names = ['model_name', 'nr_neurons_str', 'activation_function_type', 'acti_fun_out', 'nr_epochs',
+def assign_hyperparameters_from_config(fn12_pandas_df, fn12_row_nr, fn12_amount_of_rows):
+    """
+    Description:
+        Extracts and processes hyperparameters for a neural network model from a given DataFrame row.
+        The function maps DataFrame columns to hyperparameter variable names, handles special data parsing
+        for certain parameters (like neuron counts and optimizer settings), and validates some hyperparameters
+        against provided constraints (such as batch size and dropout values).
+
+    Input:
+        fn12_pandas_df (DataFrame): The DataFrame containing hyperparameter configurations.
+        fn12_row_nr (int): The row number in the DataFrame to extract hyperparameters from.
+        fn12_amount_of_rows (int): The total number of rows in the dataset, used for batch size validation.
+
+    Output:
+        dict: A dictionary of processed and validated hyperparameters for use in a neural network model.
+
+    Function-code:
+        fn12_
+    """
+
+    fn12_variable_names = ['model_name', 'nr_neurons_str', 'activation_function_type', 'acti_fun_out', 'nr_epochs',
                             'batch_size', 'noise_stddev', 'optimizer_type', 'learning_rate', 'lamda', 'dropout',
                             'psi_value', 'cost_function']
-    local_column_names = ['model_name', 'neurons', 'acti_fun', 'acti_fun_out', 'epochs', 'batch_size',
+    fn12_column_names = ['model_name', 'neurons', 'acti_fun', 'acti_fun_out', 'epochs', 'batch_size',
                           'noise', 'optimizer', 'alpha', 'lamda', 'dropout', 'psi', 'cost_fun']
 
-    local_hyperparams = {}
+    fn12_hyperparams = {}
 
-    for local_var_name, local_col_name in zip(local_variable_names, local_column_names):
-        local_value = local_pandas_df[local_col_name].iloc[local_row_nr]
+    for fn12_var_name, fn12_col_name in zip(fn12_variable_names, fn12_column_names):
+        fn12_value = fn12_pandas_df[fn12_col_name].iloc[fn12_row_nr]
 
-        if local_var_name == 'nr_neurons_str':  # Special treatment for nr_neurons
-            local_neuron_list = [int(local_neuron) for local_neuron in local_value.split(',')]
-            local_nr_output_neurons = local_neuron_list.pop()
-            local_hyperparams['nr_neurons_hidden_layers'] = local_neuron_list
-            local_hyperparams['nr_neurons_output_layer'] = local_nr_output_neurons
-        elif local_var_name == 'optimizer_type':
-            local_split_values = local_value.split(',')
-            local_optimizer = local_split_values[0]
-            local_optim_add_params = [float(local_item) for local_item in local_split_values[1:]]
-            local_hyperparams['optimizer_type'] = local_optimizer
-            local_hyperparams['optim_add_params'] = local_optim_add_params
+        if fn12_var_name == 'nr_neurons_str':  # Special treatment for nr_neurons
+            fn12_neuron_list = [int(fn12_neuron) for fn12_neuron in fn12_value.split(',')]
+            fn12_nr_output_neurons = fn12_neuron_list.pop()
+            fn12_hyperparams['nr_neurons_hidden_layers'] = fn12_neuron_list
+            fn12_hyperparams['nr_neurons_output_layer'] = fn12_nr_output_neurons
+        elif fn12_var_name == 'optimizer_type':
+            fn12_split_values = fn12_value.split(',')
+            fn12_optimizer = fn12_split_values[0]
+            fn12_optim_add_params = [float(fn12_item) for fn12_item in fn12_split_values[1:]]
+            fn12_hyperparams['optimizer_type'] = fn12_optimizer
+            fn12_hyperparams['optim_add_params'] = fn12_optim_add_params
         else:
-            local_hyperparams[local_var_name] = local_value
+            fn12_hyperparams[fn12_var_name] = fn12_value
 
-    if local_hyperparams['batch_size'] > local_amount_of_rows:
-        local_hyperparams['batch_size'] = local_amount_of_rows
-        local_pandas_df.loc[local_row_nr, "batch_size"] = local_amount_of_rows
+    if fn12_hyperparams['batch_size'] > fn12_amount_of_rows:
+        fn12_hyperparams['batch_size'] = fn12_amount_of_rows
+        fn12_pandas_df.loc[fn12_row_nr, "batch_size"] = fn12_amount_of_rows
 
-    if local_hyperparams['dropout'] >= 1 or local_hyperparams['dropout'] < 0:
+    if fn12_hyperparams['dropout'] >= 1 or fn12_hyperparams['dropout'] < 0:
         print("Error: dropout must be smaller than 1 and greater than 0!")
         sys.exit()
 
-    return local_hyperparams
+    return fn12_hyperparams
 
 
 class NNmodel(nn.Module):
-    def __init__(self, local_input_size, local_nr_neurons, local_activation_function, local_nr_output_neurons, local_acti_fun_out, local_dropout):
+    """
+    Description:
+        The NNmodel class defines a customizable neural network architecture using PyTorch's nn.Module.
+        It allows for creating a sequential model with varied numbers of layers, customizable neuron counts in each layer,
+        choice of activation functions, and the option to include dropout for regularization.
+        The class supports batch normalization and is adaptable for different types of neural network tasks,
+        such as regression or classification.
+    """
+
+    def __init__(self, fn13_input_size, fn13_nr_neurons, fn13_activation_function, fn13_nr_output_neurons, fn13_acti_fun_out, fn13_dropout):
+        """
+        Description:
+            Initializes the NNmodel class by constructing a neural network with specified layers, batch normalization, activation functions, and dropout.
+            The network is built as a sequence of layers, starting with a linear transformation, followed by batch normalization, activation, and dropout,
+            and ending with an output layer.
+
+        Input:
+            fn13_input_size (int): The size of the input layer.
+            fn13_nr_neurons (list): A list of the number of neurons in each hidden layer.
+            fn13_activation_function (function): The activation function for the hidden layers.
+            fn13_nr_output_neurons (int): The number of neurons in the output layer.
+            fn13_acti_fun_out (function): The activation function for the output layer.
+            fn13_dropout (float): Dropout rate for regularization.
+
+        Output:
+            None: This method does not return a value but initializes the layers of the neural network.
+
+        Function-code:
+            fn13_
+        """
+
         super(NNmodel, self).__init__()
         layers = []
-        for neurons in local_nr_neurons:
-            layers.append(nn.Linear(local_input_size, neurons))      # The linear function is the "z = weight_vector * feature_vector + bias" part
-            layers.append(nn.BatchNorm1d(neurons))                   # Batch normalization on the z (before the activation function is applied).
-            layers.append(local_activation_function)                 # This is then the "g(z)" part.
-            layers.append(nn.Dropout(local_dropout))                 # Dropout layer, this adds dropout regularization to the network, if local_dropout is bigger than 0.
-            local_input_size = neurons
+        for fn13_neurons in fn13_nr_neurons:
+            layers.append(nn.Linear(fn13_input_size, fn13_neurons))         # The linear function is the "z = weight_vector * feature_vector + bias" part
+            layers.append(nn.BatchNorm1d(fn13_neurons))                     # Batch normalization on the z (before the activation function is applied).
+            layers.append(fn13_activation_function)                         # This is then the "g(z)" part.
+            layers.append(nn.Dropout(fn13_dropout))                         # Dropout layer, this adds dropout regularization to the network, if fn13_dropout is bigger than 0.
+            fn13_input_size = fn13_neurons
 
-        layers.append(nn.Linear(local_input_size, local_nr_output_neurons))                # Output layer(s). For regression, there is usually only one output layer with no activation function.
-        layers.append(local_acti_fun_out)                                                  # If local_acti_fun_out is 'linear', it will not do any harm, then just nothing happens.
+        layers.append(nn.Linear(fn13_input_size, fn13_nr_output_neurons))   # Output layer(s). For regression, there is usually only one output layer with no activation function.
+        layers.append(fn13_acti_fun_out)                                    # If fn13_acti_fun_out is 'linear', it will not do any harm, then just nothing happens.
         self.model = nn.Sequential(*layers)
 
-    def forward(self, local_x):
-        return self.model(local_x)                                   # Passes the input x through the model and returns the result (y-predictions)
+    def forward(self, fn14_x):
+        """
+        Description:
+            Passes the input tensor through the sequential neural network model and returns the output tensor,
+            representing the model's predictions or outputs.
+
+        Input:
+            fn14_x (Tensor): The input tensor to be fed through the neural network.
+
+        Output:
+            Tensor: The output tensor obtained after passing the input through the neural network.
+
+        Function-code:
+            fn14_
+        """
+
+        return self.model(fn14_x)  # Passes the input x through the model and returns the result (y-predictions)
 
 
 class ArcTanActivation(torch.nn.Module):
