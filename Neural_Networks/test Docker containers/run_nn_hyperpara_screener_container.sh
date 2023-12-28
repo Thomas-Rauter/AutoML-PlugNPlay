@@ -7,7 +7,13 @@ if [[ "$(docker images -q nn_hyperpara_screener 2> /dev/null)" == "" ]]; then
 fi
 
 # Running the Docker container with the provided arguments
-docker run --rm --name nn_hyperpara_container \
+docker run --name nn_hyperpara_container \
   -u "$(id -u):$(id -g)" \
-  --volume "$(pwd)":/data \
+  --volume "$(pwd)":/main/input \
   nn_hyperpara_screener "$@"
+
+# Copy the output directory from the container to the current working directory
+docker cp nn_hyperpara_container:/main/output .
+
+# Removing the container after the operation
+docker rm nn_hyperpara_container

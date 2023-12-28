@@ -33,57 +33,77 @@ import torch.optim as optim
 # Section, where all the functions and classes are stored. All the function calls and class instantiations are below this section.
 
 
-def round_to_three_custom(num):
+def round_to_three_custom(fn1_num):
     """
-    Modify a floating-point number to have at most three non-zero digits after the decimal point.
+    Description:
+        Modify a floating-point number to have at most three non-zero digits after the decimal point.
 
     Parameters:
-    num (float): The number to be modified.
+        fn1_num (float): The number to be modified.
 
     Returns:
-    float: The modified number with at most three non-zero digits after the decimal point.
+        float: The modified number with at most three non-zero digits after the decimal point.
+
+    Function-code:
+        fn1_
     """
 
-    if isinstance(num, (float, np.float64, np.float32)):                                  # To avoid errors when this is applied to a mixed list.
-        num_str = str(num)
-        if '.' in num_str:
-            whole, decimal = num_str.split('.')                 # Splitting the number into whole and decimal parts
-            non_zero_count = 0
-            found_non_zero_digit_before_dot = False
+    if isinstance(fn1_num, (float, np.float64, np.float32)):            # To avoid errors when this is applied to a mixed list.
+        fn1_num_str = str(fn1_num)
+        if '.' in fn1_num_str:
+            fn1_whole, fn1_decimal = fn1_num_str.split('.')             # Splitting the number into whole and decimal parts
+            fn1_non_zero_count = 0
+            fn1_found_non_zero_digit_before_dot = False
 
-            for local_i, digit in enumerate(whole):
-                if digit != '0':
-                    found_non_zero_digit_before_dot = True
+            for fn1_local_i, fn1_digit in enumerate(fn1_whole):         # Loop over the decimal digits (starting from the . on leftwards)
+                if fn1_digit != '0':
+                    fn1_found_non_zero_digit_before_dot = True
 
-            for local_i, digit in enumerate(decimal):           # Loop over the decimal digits (starting from the . on leftwards)
-                if digit != '0':
-                    non_zero_count += 1
+            for fn1_local_i, fn1_digit in enumerate(fn1_decimal):
+                if fn1_digit != '0':
+                    fn1_non_zero_count += 1
 
-                if non_zero_count == 3:
+                if fn1_non_zero_count == 3:
                     # Keeping up to the third non-zero digit and truncating the rest
-                    new_decimal = decimal[:local_i + 1]
-                    return float(whole + '.' + new_decimal)
+                    fn1_new_decimal = fn1_decimal[:fn1_local_i + 1]
+                    return float(fn1_whole + '.' + fn1_new_decimal)
 
-                if local_i == 2 and found_non_zero_digit_before_dot:
-                    new_decimal = decimal[:local_i]
-                    return float(whole + '.' + new_decimal)
+                if fn1_local_i == 2 and fn1_found_non_zero_digit_before_dot:
+                    fn1_new_decimal = fn1_decimal[:fn1_local_i]
+                    return float(fn1_whole + '.' + fn1_new_decimal)
 
-            return float(num_str)  # Return the original number if less than 3 non-zero digits
+            return float(fn1_num_str)       # Return the original number if less than 3 non-zero digits
         else:
-            return int(num_str)  # Return the original number if no decimal part
+            return int(fn1_num_str)         # Return the original number if no decimal part
     else:
-        return num
+        return fn1_num
 
 
 def create_config():
-    filename = './data/nn_hyperpara_screener_config.csv'
-    if not os.path.exists(filename):
-        with open(filename, 'w') as file:
-            headers = ['model_name', 'neurons', 'acti_fun', 'acti_fun_out', 'epochs', 'batch_size', 'noise',
-                       'optimizer', 'alpha', 'lamda', 'dropout', 'psi', 'cost_fun']
-            file.write(','.join(headers))
-            starter_model = ["\nModel_1", '"10,1"', "ReLU", "Linear", 100, 64, 0, "Adam,0.9,0.99", 0.01, 0.001, 0, 1, "MSELoss"]
-            file.write(','.join([str(item) for item in starter_model]))
+    """
+    Description:
+        This function creates a configuration file named 'nn_hyperpara_screener_config.csv' for neural network hyperparameters.
+        If the file does not exist, it is created with headers and initial values for a starter model.
+
+    Arguments:
+        None
+
+    Returns:
+        None
+
+    Function-code:
+        fn2_
+    """
+
+    fn2_filename = 'nn_hyperpara_screener_config.csv'
+    if not os.path.exists(fn2_filename):
+        with open(fn2_filename, 'w') as fn2_file:
+            fn2_headers = ['model_name', 'neurons', 'acti_fun', 'acti_fun_out', 'epochs', 'batch_size', 'noise',
+                           'optimizer', 'alpha', 'lamda', 'dropout', 'psi', 'cost_fun']
+            fn2_file.write(','.join(fn2_headers))
+            fn2_starter_model = ["\nModel_1", '"10,1"', "ReLU", "Linear", 100, 64, 0, "Adam,0.9,0.99", 0.01, 0.001, 0, 1, "MSELoss"]
+            fn2_file.write(','.join([str(item) for item in fn2_starter_model]))
+
 
 
 def parse_command_line_args(arguments):
@@ -99,10 +119,10 @@ def parse_command_line_args(arguments):
         str: The local_dev_set_name.
     """
 
-    if len(arguments) == 1 and arguments[0] == 'info':
+    if len(arguments) == 1 and arguments[0] == 'help':
 
         print("Usage: python3 nn_hyperpara_screener.py train_dataset dev_dataset")
-        print("Options: python3 nn_hyperpara_screener.py train_dataset dev_dataset info        -->     Prints info messages to the terminal and terminate script.")
+        print("Options: python3 nn_hyperpara_screener.py help        -->     Prints info messages to the terminal and terminate script.")
         print("Options: python3 nn_hyperpara_screener.py config                                -->     Creates config file for manually exploring the hyperparameters and terminate script.")
         print("--plots   -->   Show loss plots during training; --optuna=10   -->   runs Optuna optimizer instead of manually tuning hyperparameters. 10 is the amount of trials for the Optuna study.")
         print("##################################################################################################################################################################\n")
@@ -219,7 +239,7 @@ def create_timestamp():
 
 def delete_pth_files():
     # Updated directory containing .pth files
-    main_directory = './data/nn_hyperpara_screener__output'
+    main_directory = '../output/nn_hyperpara_screener__output'
     sub_directory = 'model_pth_files'
     directory_path = os.path.join(main_directory, sub_directory)
 
@@ -287,7 +307,7 @@ def read_and_process_config(local_nr_examples):
     }
 
     # Read the CSV file
-    local_config = pd.read_csv('./data/nn_hyperpara_screener_config.csv')
+    local_config = pd.read_csv('../input/nn_hyperpara_screener_config.csv')
 
     # Replace NaN values with defaults
     for column, default in default_values.items():
@@ -420,23 +440,23 @@ def load_datasets(local_train_set_name, local_dev_set_name):
     """
 
     def load_dataset(file_name):
-        # Full path in the container
-        full_path = f"./data/{file_name}"
+        # Full path construction
+        full_path = os.path.join("../input", file_name)
 
         # Determine the file extension
-        file_ext = os.path.splitext(file_name)[1].lower()
+        file_ext = os.path.splitext(full_path)[1].lower()
 
         # Load the dataset based on the file extension
         if file_ext == '.csv':
-            return pd.read_csv(full_path)
+            return pd.read_csv(file_name)
         elif file_ext == '.json':
-            return pd.read_json(full_path)
+            return pd.read_json(file_name)
         elif file_ext == '.xlsx':
-            return pd.read_excel(full_path)
+            return pd.read_excel(file_name)
         elif file_ext == '.parquet':
-            return pd.read_parquet(full_path)
+            return pd.read_parquet(file_name)
         elif file_ext == '.hdf' or file_ext == '.h5':
-            return pd.read_hdf(full_path)
+            return pd.read_hdf(file_name)
         else:
             raise ValueError(f"Unsupported file type: {file_ext}")
 
@@ -919,7 +939,7 @@ def train_and_optionally_plot(model_to_train, training_loader, epochs_num, train
                 if epoch == epochs_num - 1:
 
                     # Main directory and subdirectory for saving model .pth files
-                    main_directory = './data/nn_hyperpara_screener__output'
+                    main_directory = '../output/nn_hyperpara_screener__output'
                     sub_directory = 'model_pth_files'
 
                     # Full path for saving the model includes both the main directory and subdirectory
@@ -1036,7 +1056,7 @@ def pandas_df_to_pdf(dataframe, local_timestamp, figure_filenames, filename_data
     figure_filenames = [filename for filename in expected_filenames if filename in figure_filenames]
 
     # Define main directory and subdirectory
-    main_directory = './data/nn_hyperpara_screener__output'
+    main_directory = '../output/nn_hyperpara_screener__output'
     sub_directory = 'manual_results'
 
     # Create full path for the subdirectory
@@ -1244,7 +1264,7 @@ def pandas_df_to_pdf(dataframe, local_timestamp, figure_filenames, filename_data
 
 def optuna_output_to_pdf(study, sublocal_mean_percent_error, sublocal_timestamp, local_cost_function):
 
-    file_path = "data/nn_hyperpara_screener__output/optuna_results/optuna_report__{}.pdf".format(sublocal_timestamp)
+    file_path = "../output/nn_hyperpara_screener__output/optuna_results/optuna_report__{}.pdf".format(sublocal_timestamp)
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
     subprocess.run(["xdotool", "key", "F5"])                    # This is needed, otherwise you risk a dir which just says its loading the files (which is permanent, it will never load)
 
@@ -1408,7 +1428,7 @@ def run_optuna_study(local_train_dev_dataframes, local_timestamp, local_n_trials
 
     def objective(trial, sublocal_train_dev_dataframes, sublocal_input_size):
 
-        sublocal_hyperparameter_ranges = parse_optuna_hyperparameter_ranges('./data/nn_hyperpara_screener_optuna_ranges.csv')
+        sublocal_hyperparameter_ranges = parse_optuna_hyperparameter_ranges('../input/nn_hyperpara_screener_optuna_ranges.csv')
 
         # Hyperparameters to be tuned by Optuna
         # Hyperparameter range for the number of layers
@@ -1477,16 +1497,16 @@ def run_optuna_study(local_train_dev_dataframes, local_timestamp, local_n_trials
     #################################################################################
     # Generate a range of plots that Optuna has to offer
     local_fig = optuna.visualization.plot_optimization_history(study)
-    local_fig.write_image("./data/optimization_history.png")
+    local_fig.write_image("optimization_history.png")
 
     local_fig = optuna.visualization.plot_param_importances(study)
-    local_fig.write_image("./data/param_importances.png")
+    local_fig.write_image("param_importances.png")
 
     local_fig = optuna.visualization.plot_edf(study)
-    local_fig.write_image("./data/edf.png")
+    local_fig.write_image("edf.png")
     #################################################################################
 
-    local_hyperparameter_ranges = parse_optuna_hyperparameter_ranges('./data/nn_hyperpara_screener_optuna_ranges.csv')
+    local_hyperparameter_ranges = parse_optuna_hyperparameter_ranges('../input/nn_hyperpara_screener_optuna_ranges.csv')
     local_cost_function = local_hyperparameter_ranges['cost_function']
     optuna_output_to_pdf(study, study_mean_percentage_error, local_timestamp, local_cost_function)       # Generate a report for the Optuna study.
 
@@ -1591,7 +1611,7 @@ figure_filenames_list = []  # To store filenames of saved figures
 
 for i, fig in enumerate(loss_vs_epoch_figures):
     model_name = config.iloc[i]['model_name']
-    img_filename = f"./data/{model_name}.png"
+    img_filename = f"{model_name}.png"
     fig.savefig(img_filename, bbox_inches='tight')
     figure_filenames_list.append(img_filename)
 
