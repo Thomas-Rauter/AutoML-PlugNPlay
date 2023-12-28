@@ -33,57 +33,77 @@ import torch.optim as optim
 # Section, where all the functions and classes are stored. All the function calls and class instantiations are below this section.
 
 
-def round_to_three_custom(num):
+def round_to_three_custom(fn1_num):
     """
-    Modify a floating-point number to have at most three non-zero digits after the decimal point.
+    Description:
+        Modify a floating-point number to have at most three non-zero digits after the decimal point.
 
     Parameters:
-    num (float): The number to be modified.
+        fn1_num (float): The number to be modified.
 
     Returns:
-    float: The modified number with at most three non-zero digits after the decimal point.
+        float: The modified number with at most three non-zero digits after the decimal point.
+
+    Function-code:
+        fn1_
     """
 
-    if isinstance(num, (float, np.float64, np.float32)):                                  # To avoid errors when this is applied to a mixed list.
-        num_str = str(num)
-        if '.' in num_str:
-            whole, decimal = num_str.split('.')                 # Splitting the number into whole and decimal parts
-            non_zero_count = 0
-            found_non_zero_digit_before_dot = False
+    if isinstance(fn1_num, (float, np.float64, np.float32)):            # To avoid errors when this is applied to a mixed list.
+        fn1_num_str = str(fn1_num)
+        if '.' in fn1_num_str:
+            fn1_whole, fn1_decimal = fn1_num_str.split('.')             # Splitting the number into whole and decimal parts
+            fn1_non_zero_count = 0
+            fn1_found_non_zero_digit_before_dot = False
 
-            for local_i, digit in enumerate(whole):
-                if digit != '0':
-                    found_non_zero_digit_before_dot = True
+            for fn1_local_i, fn1_digit in enumerate(fn1_whole):         # Loop over the decimal digits (starting from the . on leftwards)
+                if fn1_digit != '0':
+                    fn1_found_non_zero_digit_before_dot = True
 
-            for local_i, digit in enumerate(decimal):           # Loop over the decimal digits (starting from the . on leftwards)
-                if digit != '0':
-                    non_zero_count += 1
+            for fn1_local_i, fn1_digit in enumerate(fn1_decimal):
+                if fn1_digit != '0':
+                    fn1_non_zero_count += 1
 
-                if non_zero_count == 3:
+                if fn1_non_zero_count == 3:
                     # Keeping up to the third non-zero digit and truncating the rest
-                    new_decimal = decimal[:local_i + 1]
-                    return float(whole + '.' + new_decimal)
+                    fn1_new_decimal = fn1_decimal[:fn1_local_i + 1]
+                    return float(fn1_whole + '.' + fn1_new_decimal)
 
-                if local_i == 2 and found_non_zero_digit_before_dot:
-                    new_decimal = decimal[:local_i]
-                    return float(whole + '.' + new_decimal)
+                if fn1_local_i == 2 and fn1_found_non_zero_digit_before_dot:
+                    fn1_new_decimal = fn1_decimal[:fn1_local_i]
+                    return float(fn1_whole + '.' + fn1_new_decimal)
 
-            return float(num_str)  # Return the original number if less than 3 non-zero digits
+            return float(fn1_num_str)       # Return the original number if less than 3 non-zero digits
         else:
-            return int(num_str)  # Return the original number if no decimal part
+            return int(fn1_num_str)         # Return the original number if no decimal part
     else:
-        return num
+        return fn1_num
 
 
 def create_config():
-    filename = 'nn_hyperpara_screener_config.csv'
-    if not os.path.exists(filename):
-        with open(filename, 'w') as file:
-            headers = ['model_name', 'neurons', 'acti_fun', 'acti_fun_out', 'epochs', 'batch_size', 'noise',
-                       'optimizer', 'alpha', 'lamda', 'dropout', 'psi', 'cost_fun']
-            file.write(','.join(headers))
-            starter_model = ["\nModel_1", '"10,1"', "ReLU", "Linear", 100, 64, 0, "Adam,0.9,0.99", 0.01, 0.001, 0, 1, "MSELoss"]
-            file.write(','.join([str(item) for item in starter_model]))
+    """
+    Description:
+        This function creates a configuration file named 'nn_hyperpara_screener_config.csv' for neural network hyperparameters.
+        If the file does not exist, it is created with headers and initial values for a starter model.
+
+    Arguments:
+        None
+
+    Returns:
+        None
+
+    Function-code:
+        fn2_
+    """
+
+    fn2_filename = 'nn_hyperpara_screener_config.csv'
+    if not os.path.exists(fn2_filename):
+        with open(fn2_filename, 'w') as fn2_file:
+            fn2_headers = ['model_name', 'neurons', 'acti_fun', 'acti_fun_out', 'epochs', 'batch_size', 'noise',
+                           'optimizer', 'alpha', 'lamda', 'dropout', 'psi', 'cost_fun']
+            fn2_file.write(','.join(fn2_headers))
+            fn2_starter_model = ["\nModel_1", '"10,1"', "ReLU", "Linear", 100, 64, 0, "Adam,0.9,0.99", 0.01, 0.001, 0, 1, "MSELoss"]
+            fn2_file.write(','.join([str(item) for item in fn2_starter_model]))
+
 
 
 def parse_command_line_args(arguments):
