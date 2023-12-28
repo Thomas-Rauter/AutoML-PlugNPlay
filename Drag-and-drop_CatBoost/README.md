@@ -5,3 +5,11 @@ The .csv files should be structured in the following way:
 The .csv file with the data used for generating and evaluating the best model must only contain the feature columns followed by the column of the target labels. The first row must contain the headers for each column. Do not include a column that specifies the sample number, since CatBoost will use that as a feature (which however contains no valuable info).
 The .csv file where you want to have the predictions on must only contain the feature columns, with the same structure as the .csv file with the training data but containing no target label column.
 
+
+The only thing required for the Bash script to run on Linux and Max and for the .exe file to run on Windows is the availability of the Docker engine. A simple way of getting the Docker engine is through Docker desktop. To get Docker desktop, follow the guidelines on the official site:
+
+Ubuntu:  https://docs.docker.com/desktop/install/ubuntu/                                                                                                               
+
+Mac:     https://docs.docker.com/desktop/install/mac-install/                                                                                                                  
+Windows: https://docs.docker.com/desktop/install/windows-install/
+
