@@ -38,10 +38,10 @@ def round_to_three_custom(fn1_num):
     Description:
         Modify a floating-point number to have at most three non-zero digits after the decimal point.
 
-    Parameters:
+    Input:
         fn1_num (float): The number to be modified.
 
-    Returns:
+    Output:
         float: The modified number with at most three non-zero digits after the decimal point.
 
     Function-code:
@@ -85,11 +85,11 @@ def create_config():
         This function creates a configuration file named 'nn_hyperpara_screener_config.csv' for neural network hyperparameters.
         If the file does not exist, it is created with headers and initial values for a starter model.
 
-    Arguments:
+    Input:
         None
 
-    Returns:
-        None
+    Output:
+        nn_hyperpara_screener_config.csv file
 
     Function-code:
         fn2_
@@ -105,21 +105,24 @@ def create_config():
             fn2_file.write(','.join([str(item) for item in fn2_starter_model]))
 
 
-
-def parse_command_line_args(arguments):
+def parse_command_line_args(fn3_arguments):
     """
-    Parse command line arguments for train_set_name, and dev_set_name, dev_set_size.
+    Description:
+        Parse command line arguments for train_set_name, and dev_set_name, dev_set_size.
 
-    Args:
-        arguments (list): A list of command line arguments.
+    Input:
+        fn3_arguments (list): A list of command line arguments.
 
-    Returns:
+    Output:
         float: The local_dev_set_size as a fraction.
         str: The local_train_set_name.
         str: The local_dev_set_name.
+
+    Function-code:
+        fn3_
     """
 
-    if len(arguments) == 1 and arguments[0] == 'help':
+    if len(fn3_arguments) == 1 and fn3_arguments[0] == 'help':
 
         print("Usage: python3 nn_hyperpara_screener.py train_dataset dev_dataset")
         print("Options: python3 nn_hyperpara_screener.py help        -->     Prints info messages to the terminal and terminate script.")
@@ -135,7 +138,7 @@ def parse_command_line_args(arguments):
         print("This pdf contains the hyperparameters of the different models and their performance on the dev set, togehter with loss-plots.")
         print("The purpose of this script is to simplify and streamline the process of 'screening' for the best set of hyperparameters for a neural network, on a given dataset.")
 
-        available_activation_functions = {
+        fn3_available_activation_functions = {
             "Linear": "Identity function, g(z) = z. Used when no transformation is desired.",
             "ReLU": "Rectified Linear Unit, g(z) = max(0, z). Common in hidden layers; helps with gradient flow.",
             "LeakyReLU": "Leaky ReLU, g(z) = z if z > 0, else alpha * z. Addresses dying ReLU problem.",
@@ -156,10 +159,10 @@ def parse_command_line_args(arguments):
         }
 
         print("\nAvailable activation functions:")
-        for local_function, description in available_activation_functions.items():
-            print(f"- {local_function}: {description}")
+        for fn3_function, fn3_description in fn3_available_activation_functions.items():
+            print(f"- {fn3_function}: {fn3_description}")
 
-        available_optimizers = {
+        fn3_available_optimizers = {
             "Adam": "Adaptive Moment Estimation, combines the advantages of AdaGrad and RMSprop. Effective for a wide range of problems, especially in deep learning. Start with this one.",
             "SGD": "Stochastic Gradient Descent, simple and effective, often used with momentum. Good for general purposes.",
             "RMSprop": "Root Mean Square Propagation, adapts learning rate based on recent gradients. Useful for recurrent neural networks.",
@@ -172,10 +175,10 @@ def parse_command_line_args(arguments):
         }
 
         print("\nAvailable Optimizers:")
-        for local_optimizer, description in available_optimizers.items():
-            print(f"- {local_optimizer}: {description}")
+        for fn3_optimizer, fn3_description in fn3_available_optimizers.items():
+            print(f"- {fn3_optimizer}: {fn3_description}")
 
-        available_cost_functions = {
+        fn3_available_cost_functions = {
             "MSELoss": "Mean Squared Error Loss, used for regression tasks. It measures the average squared difference between the estimated values and the actual value.",
             "CrossEntropyLoss": "Cross-Entropy Loss, used for classification tasks. It combines LogSoftmax and NLLLoss in one single class.",
             "BCELoss": "Binary Cross-Entropy Loss, used for binary classification tasks. Measures the loss for a binary classification problem with a probability output.",
@@ -191,10 +194,10 @@ def parse_command_line_args(arguments):
         }
 
         print("\nAvailable cost-functions:")
-        for local_cost_function, description in available_cost_functions.items():
-            print(f"- {local_cost_function}: {description}")
+        for fn3_cost_function, fn3_description in fn3_available_cost_functions.items():
+            print(f"- {fn3_cost_function}: {fn3_description}")
 
-        supported_file_extensions = {
+        fn3_supported_file_extensions = {
             ".csv": "Comma separated value file.",
             ".json": "Add description.",
             ".xlsx": "Add description.",
@@ -204,83 +207,112 @@ def parse_command_line_args(arguments):
         }
 
         print("\nSupported file extensions for the datafiles:")
-        for local_file_extension, description in supported_file_extensions.items():
-            print(f"- {local_file_extension}: {description}")
+        for fn3_file_extension, fn3_description in fn3_supported_file_extensions.items():
+            print(f"- {fn3_file_extension}: {fn3_description}")
 
         sys.exit()
-    elif len(arguments) == 1 and arguments[0] == 'config':
+    elif len(fn3_arguments) == 1 and fn3_arguments[0] == 'config':
         create_config()
         sys.exit()
 
-    local_parser = argparse.ArgumentParser(description='Process the development set size and file names.')
-    local_parser.add_argument('train_set_name', type=str, help='Name of the train set file')
-    local_parser.add_argument('dev_set_name', type=str, help='Name of the dev set file')
+    fn3_parser = argparse.ArgumentParser(description='Process the development set size and file names.')
+    fn3_parser.add_argument('train_set_name', type=str, help='Name of the train set file')
+    fn3_parser.add_argument('dev_set_name', type=str, help='Name of the dev set file')
 
     # Optional arguments
-    local_parser.add_argument('--plots', action='store_true', help='Optional argument to show plots')
-    local_parser.add_argument('--optuna', nargs='?', const=50, type=int, default=False, help='Optional argument to run Optuna with a specified number')
+    fn3_parser.add_argument('--plots', action='store_true', help='Optional argument to show plots')
+    fn3_parser.add_argument('--optuna', nargs='?', const=50, type=int, default=False, help='Optional argument to run Optuna with a specified number')
 
-    local_args = local_parser.parse_args(arguments)
+    fn3_args = fn3_parser.parse_args(fn3_arguments)
 
-    local_train_set_name = local_args.train_set_name
-    local_dev_set_name = local_args.dev_set_name
-    local_show_plots = local_args.plots
-    local_run_optuna = local_args.optuna is not False
-    local_trials = local_args.optuna if local_args.optuna is not False else None
+    fn3_train_set_name = fn3_args.train_set_name
+    fn3_dev_set_name = fn3_args.dev_set_name
+    fn3_show_plots = fn3_args.plots
+    fn3_run_optuna = fn3_args.optuna is not False
+    fn3_trials = fn3_args.optuna if fn3_args.optuna is not False else None
 
-    return local_train_set_name, local_dev_set_name, local_show_plots, local_run_optuna, local_trials
+    return fn3_train_set_name, fn3_dev_set_name, fn3_show_plots, fn3_run_optuna, fn3_trials
 
 
 def create_timestamp():
-    now = datetime.now()                                    # Get the current time
-    precise_time = now.strftime("%d-%m-%Y_%H-%M-%S")        # Format the time as "day-month-year_hour-minute-second"
-    return precise_time
+    """
+    Description:
+        Generate a timestamp string with the current date and time.
+
+    Input:
+        None
+
+    Output:
+        str: A string representing the current date and time in the format "day-month-year_hour-minute-second".
+
+    Function-code:
+        fn4_
+    """
+
+    fn4_now = datetime.now()                                             # Get the current time
+    fn4_precise_time = fn4_now.strftime("%d-%m-%Y_%H-%M-%S")             # Format the time as "day-month-year_hour-minute-second"
+    return fn4_precise_time
 
 
 def delete_pth_files():
+    """
+    Description:
+        Deletes all .pth files in a specific subdirectory within the output directory.
+
+    Input:
+        None
+
+    Output:
+        None
+
+    Function-code:
+        fn5_
+    """
     # Updated directory containing .pth files
-    main_directory = '../output/nn_hyperpara_screener__output'
-    sub_directory = 'model_pth_files'
-    directory_path = os.path.join(main_directory, sub_directory)
+    fn5_main_directory = '../output/nn_hyperpara_screener__output'
+    fn5_sub_directory = 'model_pth_files'
+    fn5_directory_path = os.path.join(fn5_main_directory, fn5_sub_directory)
 
     # Construct the full path to the directory
-    full_directory_path = os.path.join(os.getcwd(), directory_path)
+    fn5_full_directory_path = os.path.join(os.getcwd(), fn5_directory_path)
 
     # Check if the directory exists, and if not, return without doing anything
-    if not os.path.exists(full_directory_path):
+    if not os.path.exists(fn5_full_directory_path):
         return
 
     # List all .pth files in the directory
-    pth_files = glob.glob(os.path.join(full_directory_path, '*.pth'))
+    fn5_pth_files = glob.glob(os.path.join(fn5_full_directory_path, '*.pth'))
 
     # Loop through the files and delete them
-    for file_path in pth_files:
+    for fn5_file_path in fn5_pth_files:
         try:
-            os.remove(file_path)
+            os.remove(fn5_file_path)
         except Exception as e:
             pass  # Optionally handle errors silently or log them
 
 
-def read_and_process_config(local_nr_examples):
+def read_and_process_config(fn6_nr_examples):
     """
-    Reads a CSV file into a pandas DataFrame, replaces NaN values with
-    specified default values, and enforces specific data types for each column.
+    Description:
+        Reads the configuration file for neural network hyperparameters, fills missing values with defaults,
+        and enforces specific data types for each column.
 
-    Parameters:
-    file_path (str): Path to the CSV file to be read.
-    default_values (dict): Dictionary where keys are column names and values are default values.
-    data_types (dict): Dictionary specifying the desired data type for each column.
+    Input:
+        fn6_nr_examples (int): The number of examples to be used as the default batch size in the configuration.
 
-    Returns:
-    pandas.DataFrame: The processed DataFrame with default values and specified data types.
+    Output:
+        DataFrame: A pandas DataFrame containing the processed configuration settings for neural network training.
+
+    Function-code:
+        fn6_
     """
 
-    default_values = {
+    fn6_default_values = {
         'neurons': '10,1',
         'acti_fun': 'ReLU',
         'acti_fun_out': 'Linear',
         'epochs': 100,
-        'batch_size': local_nr_examples,
+        'batch_size': fn6_nr_examples,
         'noise': 0,
         'optimizer': 'Adam,0.9,.099',
         'alpha': 0.01,
@@ -290,7 +322,7 @@ def read_and_process_config(local_nr_examples):
         'cost_fun': 'MSELoss',
     }
 
-    data_types = {
+    fn6_data_types = {
         'model_name': str,
         'neurons': str,
         'acti_fun': str,
@@ -307,164 +339,209 @@ def read_and_process_config(local_nr_examples):
     }
 
     # Read the CSV file
-    local_config = pd.read_csv('../input/nn_hyperpara_screener_config.csv')
+    fn6_config = pd.read_csv('../input/nn_hyperpara_screener_config.csv')
 
     # Replace NaN values with defaults
-    for column, default in default_values.items():
-        if column in local_config.columns:
-            local_config[column].fillna(default, inplace=True)
+    for fn6_column, fn6_default in fn6_default_values.items():
+        if fn6_column in fn6_config.columns:
+            fn6_config[fn6_column].fillna(fn6_default, inplace=True)
 
     # Enforce data types
-    for column, dtype in data_types.items():
-        if column in local_config.columns:
-            local_config[column] = local_config[column].astype(dtype)
+    for fn6_column, fn6_dtype in fn6_data_types.items():
+        if fn6_column in fn6_config.columns:
+            fn6_config[fn6_column] = fn6_config[fn6_column].astype(fn6_dtype)
 
-    return local_config
+    return fn6_config
 
 
-def check_config_columns(local_df, local_required_columns):
-    def is_similar(column_a, column_b):
+def check_config_columns(fn7_df, fn7_required_columns):
+    """
+    Description:
+        Checks if the columns in a DataFrame match a set of required columns, taking into account exact matches and similar (potentially misspelled) column names.
+        The function identifies missing and extra columns, and provides a detailed report of discrepancies. It exits the program if discrepancies are found.
+
+    Input:
+        fn7_df (DataFrame): The DataFrame to be checked.
+        fn7_required_columns (dict): A dictionary with keys representing the required column names.
+
+    Output:
+        None: The function does not return a value but prints discrepancies and exits if any are found.
+
+    Function-code:
+        fn7_
+    """
+
+    def is_similar(fn8_column_a, fn8_column_b):
+        """
+        Function-code:
+            fn8_
+        """
+
         # Simple function to check if two column names are similar
-        return column_a.lower() == column_b.lower() or column_a in column_b or column_b in column_a
+        return fn8_column_a.lower() == fn8_column_b.lower() or fn8_column_a in fn8_column_b or fn8_column_b in fn8_column_a
 
     # Identify exact missing and extra columns
-    exact_missing_columns = set(local_required_columns.keys()) - set(local_df.columns)
-    exact_extra_columns = set(local_df.columns) - set(local_required_columns.keys())
+    fn7_exact_missing_columns = set(fn7_required_columns.keys()) - set(fn7_df.columns)
+    fn7_exact_extra_columns = set(fn7_df.columns) - set(fn7_required_columns.keys())
 
     # Initialize lists for similar but potentially misspelled columns
-    similar_missing_columns = []
-    similar_extra_columns = []
+    fn7_similar_missing_columns = []
+    fn7_similar_extra_columns = []
 
     # Check for similar columns
-    for column in list(exact_missing_columns):
-        for df_column in local_df.columns:
-            if is_similar(column, df_column):
-                similar_missing_columns.append((df_column, column))  # Note the order change here
-                exact_missing_columns.remove(column)
-                exact_extra_columns.discard(df_column)
+    for fn7_column in list(fn7_exact_missing_columns):
+        for fn7_df_column in fn7_df.columns:
+            if is_similar(fn7_column, fn7_df_column):
+                fn7_similar_missing_columns.append((fn7_df_column, fn7_column))  # Note the order change here
+                fn7_exact_missing_columns.remove(fn7_column)
+                fn7_exact_extra_columns.discard(fn7_df_column)
                 break
 
-    for column in list(exact_extra_columns):
-        for required_column in local_required_columns.keys():
-            if is_similar(column, required_column):
-                similar_extra_columns.append((column, required_column))  # Keeping this as it is
-                exact_extra_columns.remove(column)
-                exact_missing_columns.discard(required_column)
+    for fn7_column in list(fn7_exact_extra_columns):
+        for fn7_required_column in fn7_required_columns.keys():
+            if is_similar(fn7_column, fn7_required_column):
+                fn7_similar_extra_columns.append((fn7_column, fn7_required_column))  # Keeping this as it is
+                fn7_exact_extra_columns.remove(fn7_column)
+                fn7_exact_missing_columns.discard(fn7_required_column)
                 break
 
     # Print the results
-    if exact_missing_columns or exact_extra_columns or similar_missing_columns or similar_extra_columns:
-        if exact_missing_columns:
-            print("Missing columns:", ', '.join(exact_missing_columns))
-        if exact_extra_columns:
-            print("Extra columns:", ', '.join(exact_extra_columns))
-        if similar_missing_columns:
-            print("Mispelled or similar missing columns:", ', '.join([f"{x[0]} (similar to {x[1]})" for x in similar_missing_columns]))
-        if similar_extra_columns:
-            print("Mispelled or similar extra columns:", ', '.join([f"{x[0]} (similar to {x[1]})" for x in similar_extra_columns]))
+    if fn7_exact_missing_columns or fn7_exact_extra_columns or fn7_similar_missing_columns or fn7_similar_extra_columns:
+        if fn7_exact_missing_columns:
+            print("Missing columns:", ', '.join(fn7_exact_missing_columns))
+        if fn7_exact_extra_columns:
+            print("Extra columns:", ', '.join(fn7_exact_extra_columns))
+        if fn7_similar_missing_columns:
+            print("Mispelled or similar missing columns:", ', '.join([f"{x[0]} (similar to {x[1]})" for x in fn7_similar_missing_columns]))
+        if fn7_similar_extra_columns:
+            print("Mispelled or similar extra columns:", ', '.join([f"{x[0]} (similar to {x[1]})" for x in fn7_similar_extra_columns]))
 
         print("Error: DataFrame does not have the exact required columns.")
         sys.exit(1)
 
 
-def check_dataframe_columns(local_df):
+def check_dataframe_columns(fn9_df):
     """
-    Checks if the given DataFrame contains a specific set of columns
-    and no others. It also checks if the data in specific columns meets
-    certain criteria:
-    - 'nr_neurons': Must contain only ints separated by commas.
-    - 'alpha': Must contain only legal ints or floats.
-    - 'nr_epochs' and 'batch_size': Must contain only ints.
-    - 'lamda': Must contain only legal floats.
-    - 'acti_fun': Must contain only letters.
-    - 'psi': Must contain only legal ints or floats.
+    Description:
+        Checks if the given DataFrame contains a specific set of columns
+        and no others. It also checks if the data in specific columns meets
+        certain criteria:
+        - 'nr_neurons': Must contain only ints separated by commas.
+        - 'alpha': Must contain only legal ints or floats.
+        - 'nr_epochs' and 'batch_size': Must contain only ints.
+        - 'lamda': Must contain only legal floats.
+        - 'acti_fun': Must contain only letters.
+        - 'psi': Must contain only legal ints or floats.
 
-    If any condition is not met, the function prints an error message
-    along with the contents of the offending cell and terminates the script.
+        If any condition is not met, the function prints an error message
+        along with the contents of the offending cell and terminates the script.
 
-    Parameters:
-    local_df (DataFrame): The DataFrame to be checked.
+    Input:
+        fn9_df (DataFrame): The DataFrame to be checked.
+
+    Output:
+        Outputs an error message and terminates the script if discrepancies are found, or confirms successful validation otherwise.
+
+    Funtion-code:
+        fn9_
     """
 
-    # Required columns and their specific checks
-    required_columns_nn = {
-        'model_name': lambda local_column: all(isinstance(local_element, str) for local_element in local_column) and len(set(local_column)) == len(local_column),
-        'neurons': lambda local_x: pd.isna(local_x) or all(local_i.strip().isdigit() for local_i in str(local_x).split(',')),
-        'acti_fun': lambda local_x: pd.isna(local_x) or local_x.isalpha(),
-        'acti_fun_out': lambda local_x: pd.isna(local_x) or local_x.isalpha(),
-        'epochs': lambda local_x: pd.isna(local_x) or (isinstance(local_x, int) and str(local_x).isdigit()),
-        'batch_size': lambda local_x: pd.isna(local_x) or (isinstance(local_x, int) and str(local_x).isdigit()),
-        'noise': lambda local_x: pd.isna(local_x) or (isinstance(local_x, (int, float)) and local_x >= 0),
-        'optimizer': lambda local_x: pd.isna(local_x) or isinstance(local_x, str),
-        'alpha': lambda local_x: pd.isna(local_x) or isinstance(local_x, (int, float)),
-        'lamda': lambda local_x: pd.isna(local_x) or isinstance(local_x, float),
-        'dropout': lambda local_x: pd.isna(local_x) or (isinstance(local_x, (int, float)) and 0 <= local_x < 1),
-        'psi': lambda local_x: pd.isna(local_x) or isinstance(local_x, (int, float)),
-        'cost_fun': lambda local_x: pd.isna(local_x) or isinstance(local_x, str),
+    fn9_required_columns_nn = {
+        'model_name': lambda fn9_column: all(isinstance(fn9_element, str) for fn9_element in fn9_column) and len(set(fn9_column)) == len(fn9_column),
+        'neurons': lambda fn9_x: pd.isna(fn9_x) or all(fn9_i.strip().isdigit() for fn9_i in str(fn9_x).split(',')),
+        'acti_fun': lambda fn9_x: pd.isna(fn9_x) or fn9_x.isalpha(),
+        'acti_fun_out': lambda fn9_x: pd.isna(fn9_x) or fn9_x.isalpha(),
+        'epochs': lambda fn9_x: pd.isna(fn9_x) or (isinstance(fn9_x, int) and str(fn9_x).isdigit()),
+        'batch_size': lambda fn9_x: pd.isna(fn9_x) or (isinstance(fn9_x, int) and str(fn9_x).isdigit()),
+        'noise': lambda fn9_x: pd.isna(fn9_x) or (isinstance(fn9_x, (int, float)) and fn9_x >= 0),
+        'optimizer': lambda fn9_x: pd.isna(fn9_x) or isinstance(fn9_x, str),
+        'alpha': lambda fn9_x: pd.isna(fn9_x) or isinstance(fn9_x, (int, float)),
+        'lamda': lambda fn9_x: pd.isna(fn9_x) or isinstance(fn9_x, float),
+        'dropout': lambda fn9_x: pd.isna(fn9_x) or (isinstance(fn9_x, (int, float)) and 0 <= fn9_x < 1),
+        'psi': lambda fn9_x: pd.isna(fn9_x) or isinstance(fn9_x, (int, float)),
+        'cost_fun': lambda fn9_x: pd.isna(fn9_x) or isinstance(fn9_x, str),
     }
 
-    check_config_columns(local_df, required_columns_nn)
+    check_config_columns(fn9_df, fn9_required_columns_nn)
 
     # Checks if the column model_name just contains unique values (no two rows should have the same name)
-    model_name_column = local_df.columns[0]
+    fn9_model_name_column = fn9_df.columns[0]
 
     # Find indices of rows with duplicate values in the first column
-    duplicate_rows = local_df[local_df[model_name_column].duplicated(keep=False)].index
+    fn9_duplicate_rows = fn9_df[fn9_df[fn9_model_name_column].duplicated(keep=False)].index
 
     # Print the result
-    if not duplicate_rows.empty:
-        print(f"Rows with duplicate values in the column model_name: {list(duplicate_rows)}")
+    if not fn9_duplicate_rows.empty:
+        print(f"Rows with duplicate values in the column model_name: {list(fn9_duplicate_rows)}")
         sys.exit()
 
     # Check each column for its specific criteria
-    for col, check in required_columns_nn.items():
-        if check:
-            for index, value in local_df[col].items():
-                if not check(value):
-                    print(f"Error: Data in column '{col}', row {index}, does not meet the specified criteria. Offending data: {value}")
+    for fn9_col, fn9_check in fn9_required_columns_nn.items():
+        if fn9_check:
+            for fn9_index, fn9_value in fn9_df[fn9_col].items():
+                if not fn9_check(fn9_value):
+                    print(f"Error: Data in column '{fn9_col}', row {fn9_index}, does not meet the specified criteria. Offending data: {fn9_value}")
                     sys.exit(1)
 
     print("All required columns are present and data meets all specified criteria.")
 
 
-def load_datasets(local_train_set_name, local_dev_set_name):
+def load_datasets(fn10_train_set_name, fn10_dev_set_name):
     """
-    Load datasets based on file extension.
+    Description:
+        Load datasets based on file extension.
 
-    Parameters:
-    train_set_name (str): File path for the training dataset.
-    dev_set_name (str): File path for the development dataset.
+    Input:
+        fn10_train_set_name (str): File path for the training dataset.
+        fn10_dev_set_name (str): File path for the development dataset.
 
-    Returns:
-    tuple: A tuple containing two pandas DataFrames, one for the training set and one for the development set.
+    Output:
+        tuple: A tuple containing two pandas DataFrames, one for the training set and one for the development set.
+
+    Function-code:
+        fn10_
     """
 
-    def load_dataset(file_name):
+    def load_dataset(fn11_file_name):
+        """
+        Description:
+            Loads a dataset from a specified file path, supporting multiple file formats. The function determines the file extension and uses the appropriate pandas function to read the data.
+
+        Input:
+            fn11_file_name (str): File path for the dataset, supporting formats like CSV, JSON, XLSX, Parquet, HDF5.
+
+        Output:
+            DataFrame: A pandas DataFrame containing the data from the specified file.
+
+        Function-code:
+            fn11_
+        """
+
         # Full path construction
-        full_path = os.path.join("../input", file_name)
+        fn11_full_path = os.path.join("../input", fn11_file_name)
 
         # Determine the file extension
-        file_ext = os.path.splitext(full_path)[1].lower()
+        fn11_file_ext = os.path.splitext(fn11_full_path)[1].lower()
 
         # Load the dataset based on the file extension
-        if file_ext == '.csv':
-            return pd.read_csv(file_name)
-        elif file_ext == '.json':
-            return pd.read_json(file_name)
-        elif file_ext == '.xlsx':
-            return pd.read_excel(file_name)
-        elif file_ext == '.parquet':
-            return pd.read_parquet(file_name)
-        elif file_ext == '.hdf' or file_ext == '.h5':
-            return pd.read_hdf(file_name)
+        if fn11_file_ext == '.csv':
+            return pd.read_csv(fn11_full_path)
+        elif fn11_file_ext == '.json':
+            return pd.read_json(fn11_full_path)
+        elif fn11_file_ext == '.xlsx':
+            return pd.read_excel(fn11_full_path)
+        elif fn11_file_ext == '.parquet':
+            return pd.read_parquet(fn11_full_path)
+        elif fn11_file_ext == '.hdf' or fn11_file_ext == '.h5':
+            return pd.read_hdf(fn11_full_path)
         else:
-            raise ValueError(f"Unsupported file type: {file_ext}")
+            raise ValueError(f"Unsupported file type: {fn11_file_ext}")
 
     # Load the datasets
-    local_train_set_data = load_dataset(local_train_set_name)
-    local_dev_set_data = load_dataset(local_dev_set_name)
+    fn10_train_set_data = load_dataset(fn10_train_set_name)
+    fn10_dev_set_data = load_dataset(fn10_dev_set_name)
 
-    return local_train_set_data, local_dev_set_data
+    return fn10_train_set_data, fn10_dev_set_data
 
 
 def assign_hyperparameters_from_config(local_pandas_df, local_row_nr, local_amount_of_rows):
@@ -510,6 +587,7 @@ class NNmodel(nn.Module):
         layers = []
         for neurons in local_nr_neurons:
             layers.append(nn.Linear(local_input_size, neurons))      # The linear function is the "z = weight_vector * feature_vector + bias" part
+            layers.append(nn.BatchNorm1d(neurons))                   # Batch normalization on the z (before the activation function is applied).
             layers.append(local_activation_function)                 # This is then the "g(z)" part.
             layers.append(nn.Dropout(local_dropout))                 # Dropout layer, this adds dropout regularization to the network, if local_dropout is bigger than 0.
             local_input_size = neurons
@@ -1044,7 +1122,7 @@ def evaluate_model(model_eval, x_dev_norm, y_dev_data, model_index, config_df):
 
 
 def pandas_df_to_pdf(dataframe, local_timestamp, figure_filenames, filename_dataset, nr_features, nr_examples, local_examples_model_predictions):
-    filename = 'nn_hyperpara_screener_output__' + local_timestamp + '.pdf'
+    filename = 'nn_hyperpara_screener output     ' + local_timestamp + '.pdf'
 
     # Sort the DataFrame in descending order based on 'mean_absolute_error'
     sorted_dataframe = dataframe.sort_values(by='%err', ascending=True)
@@ -1439,7 +1517,6 @@ def run_optuna_study(local_train_dev_dataframes, local_timestamp, local_n_trials
         for local_i in range(1, num_layers + 1):         # So that the first hidden layer has the number 1 (nr. 0 could be confused with input layer)
             local_num_neurons = trial.suggest_int(f'neurons_hidden_layer_{local_i}', *sublocal_hyperparameter_ranges['nr_neurons_hidden_layers'])
         local_nr_neurons.append(local_num_neurons)
-        # local_nr_output_neurons = 1
         local_nr_output_neurons = trial.suggest_int('num_neurons_output_layer', *sublocal_hyperparameter_ranges['num_neurons_output_layer'])
 
         local_acti_fun_type = trial.suggest_categorical('acti_fun', sublocal_hyperparameter_ranges['acti_fun_hidden_layers'])
