@@ -665,527 +665,682 @@ class NNmodel(nn.Module):
 
 
 class ArcTanActivation(torch.nn.Module):
-    def forward(self, local_input):
-        return torch.atan(local_input)
+    """
+    Description:
+        A custom PyTorch activation function module implementing the ArcTan (arctangent) function.
+        This module can be used as an activation function in neural network models within PyTorch's framework.
+    """
+
+    def forward(self, fn15_input):
+        """
+        Description:
+            Computes the arctangent of the input tensor element-wise, applying the ArcTan activation function.
+
+        Input:
+            fn15_input (Tensor): The input tensor to which the ArcTan activation function will be applied.
+
+        Output:
+            Tensor: The output tensor after applying the ArcTan activation function element-wise.
+
+        Function-code:
+            fn15_
+        """
+
+        return torch.atan(fn15_input)
 
 
 class Mish(torch.nn.Module):
-    def forward(self, local_input):
-        return local_input * torch.tanh(F.softplus(local_input))
+    """
+    Description:
+        A custom PyTorch activation function module implementing the Mish function.
+        Mish is a smooth, self-regularized, and non-monotonic activation function which
+        has been found to improve neural network performance in certain scenarios.
+    """
+
+    def forward(self, fn16_input):
+        """
+        Description:
+            Applies the Mish activation function to the input tensor. Mish is defined as
+            x * tanh(softplus(x)), which helps in maintaining a smooth gradient flow.
+
+        Input:
+            fn16_input (Tensor): The input tensor to which the Mish activation function will be applied.
+
+        Output:
+            Tensor: The output tensor after applying the Mish activation function element-wise.
+
+        Function-code:
+            fn16_
+        """
+        return fn16_input * torch.tanh(F.softplus(fn16_input))
 
 
 class Hardswish(torch.nn.Module):
-    def forward(self, local_input):
-        return local_input * F.relu6(local_input + 3) / 6
+    """
+    Description:
+        A custom PyTorch activation function module implementing the Hardswish function.
+        Hardswish is an efficient, hardware-friendly approximation of the Swish activation function,
+        commonly used in deep learning models for faster computation with similar performance.
+    """
+
+    def forward(self, fn17_input):
+        """
+        Description:
+            Applies the Hardswish activation function to the input tensor. Hardswish is computed as
+            x * relu6(x + 3) / 6, providing a piecewise linear approximation to Swish, which is faster to compute.
+
+        Input:
+            fn17_input (Tensor): The input tensor to which the Hardswish activation function will be applied.
+
+        Output:
+            Tensor: The output tensor after applying the Hardswish activation function element-wise.
+
+        Function-code:
+            fn17_
+        """
+        return fn17_input * F.relu6(fn17_input + 3) / 6
 
 
 class CoLUActivation(nn.Module):
-    def forward(self, local_input):
-        return local_input / (1 - torch.pow(local_input, -(local_input + torch.exp(local_input))))
-
-
-def get_activation_function(local_acti_fun_type):
     """
-    Returns the corresponding PyTorch activation function based on the given type.
-
-    Parameters:
-    local_acti_fun_type (str): The name of the activation function.
-
-    Returns:
-    nn.Module: The PyTorch activation function object.
-
-    If the specified activation function is not recognized, the function
-    prints an error message and exits the script.
+    Description:
+        A custom PyTorch activation function module implementing the CoLU (Complementary Log-U) function.
+        This activation function is designed to provide a novel approach to handling neural network activations,
+        potentially offering benefits in specific types of neural network architectures.
     """
 
-    if local_acti_fun_type == "Linear":                 # Basically means no activation function
+    def forward(self, fn18_input):
+        """
+        Description:
+            Applies the CoLU activation function to the input tensor. The CoLU function is defined as
+            x / (1 - x^(-x + exp(x))), which introduces a unique transformation to the input values.
+
+        Input:
+            fn18_input (Tensor): The input tensor to which the CoLU activation function will be applied.
+
+        Output:
+            Tensor: The output tensor after applying the CoLU activation function element-wise.
+
+        Function-code:
+            fn18_
+        """
+        return fn18_input / (1 - torch.pow(fn18_input, -(fn18_input + torch.exp(fn18_input))))
+
+
+def get_activation_function(fn19_acti_fun_type):
+    """
+    Description:
+        Returns the corresponding PyTorch activation function based on the given type.
+
+    Input:
+        local_acti_fun_type (str): The name of the activation function.
+
+    Output:
+        nn.Module: The PyTorch activation function object.
+        If the specified activation function is not recognized, the function
+        prints an error message and exits the script.
+
+    Function-code:
+        fn19_
+    """
+
+    if fn19_acti_fun_type == "Linear":                 # Basically means no activation function
         return nn.Identity()                            # Linear, g(z) = z
-    elif local_acti_fun_type == "ReLU":                 # All the ReLU functions should only be used in the hidden layers.
+    elif fn19_acti_fun_type == "ReLU":                 # All the ReLU functions should only be used in the hidden layers.
         return nn.ReLU()                                # ReLU, g(z) = max(0, z)
-    elif local_acti_fun_type == "LeakyReLU":            # In case of dead neurons
+    elif fn19_acti_fun_type == "LeakyReLU":            # In case of dead neurons
         return nn.LeakyReLU()                           # Leaky ReLU, g(z) = z if z > 0, else alpha * z, alpha is fixed
-    elif local_acti_fun_type == "PReLU":
+    elif fn19_acti_fun_type == "PReLU":
         return nn.PReLU()                               # PReLU, g(z) = z if z > 0, else alpha * z, alpha is a hyperparameter
-    elif local_acti_fun_type == "ELU":                  # ELU = exponential linear units
+    elif fn19_acti_fun_type == "ELU":                  # ELU = exponential linear units
         return nn.ELU()                                 # ELU, g(z) = alpha * (e^z - 1) if z < 0, else z, alpha is fixed
-    elif local_acti_fun_type == "GELU":                 # Gaussian error linear units.
+    elif fn19_acti_fun_type == "GELU":                 # Gaussian error linear units.
         return nn.GELU()                                # GELU, g(z) = 0.5 * z * (1 + tanh(sqrt(2/pi) * (z + 0.044715 * z^3))
-    elif local_acti_fun_type == "SELU":
+    elif fn19_acti_fun_type == "SELU":
         return nn.SELU()                                # SELU, g(z) = scale * [max(0, z) + min(0, alpha * (e^z - 1))]
-    elif local_acti_fun_type == "CELU":
+    elif fn19_acti_fun_type == "CELU":
         return nn.CELU()                                # CeLU, g(z) = max(0, z) + min(0, alpha * (exp(z/alpha) - 1))
-    elif local_acti_fun_type == "CoLU":                 # Beneficial for deep networks.
+    elif fn19_acti_fun_type == "CoLU":                 # Beneficial for deep networks.
         return CoLUActivation()                         # CoLU, g(z) = z / (1 - z^-(z + e^z))
-    elif local_acti_fun_type == "Softplus":             # Smooth approximation of ReLU
+    elif fn19_acti_fun_type == "Softplus":             # Smooth approximation of ReLU
         return nn.Softplus()                            # Softplus, g(z) = log(1 + e^z)
-    elif local_acti_fun_type == "Swish":
+    elif fn19_acti_fun_type == "Swish":
         return nn.SiLU()                                # Swish, g(z) = z * sigmoid(z)
-    elif local_acti_fun_type == "Hardswish":            # Approximation of the Swish activation function that is computationally more efficient.
+    elif fn19_acti_fun_type == "Hardswish":            # Approximation of the Swish activation function that is computationally more efficient.
         return Hardswish()                              # Hard Swish, g(z) = z * ReLU6(z + 3) / 6
-    elif local_acti_fun_type == "Sigmoid":              # Sigmoid and Tanh are better for classification.
+    elif fn19_acti_fun_type == "Sigmoid":              # Sigmoid and Tanh are better for classification.
         return nn.Sigmoid()                             # Sigmoid, g(z) = 1 / (1 + e^(-z))
-    elif local_acti_fun_type == "Tanh":                 # Very similar to the sigmoid function, for classification.
+    elif fn19_acti_fun_type == "Tanh":                 # Very similar to the sigmoid function, for classification.
         return nn.Tanh()                                # Tanh, g(z) = (e^z - e^(-z)) / (e^z + e^(-z))
-    elif local_acti_fun_type == "ArcTan":               # Custom function build with class.
+    elif fn19_acti_fun_type == "ArcTan":               # Custom function build with class.
         return ArcTanActivation()                       # ArcTan, g(z) = arctan(z)
-    elif local_acti_fun_type == "Softmax":              # For multiclass classification problems.
+    elif fn19_acti_fun_type == "Softmax":              # For multiclass classification problems.
         return nn.Softmax(dim=1)                        # Softmax, g(z_i) = e^(z_i) / sum(e^(z_j) for j in all outputs)
-    elif local_acti_fun_type == "Mish":                 # Both for regression and classification. Its smooth and non-monotonic.
+    elif fn19_acti_fun_type == "Mish":                 # Both for regression and classification. Its smooth and non-monotonic.
         return Mish()                                   # Mish, g(z) = z * tanh(softplus(z)) = z * tanh(log(1 + e^z))
     else:
         print("Error: No activation function was specified in the config file!")
         sys.exit()
 
 
-def create_initial_weights(local_input_size, n_neurons, local_nr_output_neurons, local_acti_fun_type, psi):
+def create_initial_weights(fn20_input_size, fn20_n_neurons, fn20_nr_output_neurons, fn20_acti_fun_type, fn20_psi):
     """
-    Creates initial weights and biases for a neural network given the input size,
-    the number of neurons in each hidden layer, and the output size. Weights are
-    initialized using a custom formula, and biases are initialized to a small constant value.
+    Description:
+        Creates initial weights and biases for a neural network given the input size,
+        the number of neurons in each hidden layer, and the output size. Weights are
+        initialized using a custom formula, and biases are initialized to a small constant value.
 
-    Parameters:
-    local_input_size (int): The number of features in the input data.
-    n_neurons (list of int): A list containing the number of neurons in each hidden layer.
-    local_output_size (int, optional): The number of neurons in the output layer.
+    Input:
+        fn20_input_size (int): The number of features in the input data.
+        fn20_n_neurons (list of int): A list containing the number of neurons in each hidden layer.
+        fn20_output_size (int, optional): The number of neurons in the output layer.
 
-    Returns:
-    weights (list of Tensor): A list of weight matrices, where each matrix corresponds
-                              to the weights for one layer in the network.
-    biases (list of Tensor): A list of bias vectors, where each vector corresponds
-                             to the biases for one layer in the network.
+    Output:
+        weights (list of Tensor): A list of weight matrices, where each matrix corresponds
+                                  to the weights for one layer in the network.
+        biases (list of Tensor): A list of bias vectors, where each vector corresponds
+                                 to the biases for one layer in the network.
+
+    Function-code:
+        fn20_
     """
 
-    weights = []
-    biases = []
+    fn20_weights = []
+    fn20_biases = []
 
     # Start with the input size
-    layer_input_size = local_input_size
+    fn20_layer_input_size = fn20_input_size
 
     # Create weights and biases for each hidden layer
-    for neurons in n_neurons:
+    for fn20_neurons in fn20_n_neurons:
         # Custom weight initialization
-        if local_acti_fun_type == "ReLU":
-            local_w = torch.randn(layer_input_size, neurons) * np.sqrt(psi * 2 / layer_input_size)
-        elif local_acti_fun_type == "Tanh":
-            local_w = torch.randn(layer_input_size, neurons) * np.sqrt(psi * 1 / layer_input_size)      # Xavier initialization
+        if fn20_acti_fun_type == "ReLU":
+            fn20_w = torch.randn(fn20_layer_input_size, fn20_neurons) * np.sqrt(fn20_psi * 2 / fn20_layer_input_size)
+        elif fn20_acti_fun_type == "Tanh":
+            fn20_w = torch.randn(fn20_layer_input_size, fn20_neurons) * np.sqrt(fn20_psi * 1 / fn20_layer_input_size)      # Xavier initialization
         else:
-            local_w = torch.randn(layer_input_size, neurons) * np.sqrt(psi * 1 / layer_input_size)
+            fn20_w = torch.randn(fn20_layer_input_size, fn20_neurons) * np.sqrt(fn20_psi * 1 / fn20_layer_input_size)
 
-        weights.append(local_w)
+        fn20_weights.append(fn20_w)
 
         # Bias initialization
-        local_b = torch.Tensor(neurons).fill_(0.01)
-        biases.append(local_b)
+        fn20_b = torch.Tensor(fn20_neurons).fill_(0.01)
+        fn20_biases.append(fn20_b)
 
         # The output of this layer is the input to the next layer
-        layer_input_size = neurons
+        fn20_layer_input_size = fn20_neurons
 
     # Custom weight initialization for the output layer
-    local_w = torch.randn(n_neurons[-1], local_nr_output_neurons) * np.sqrt(1/n_neurons[-1])
-    weights.append(local_w)
+    fn20_w = torch.randn(fn20_n_neurons[-1], fn20_nr_output_neurons) * np.sqrt(1/fn20_n_neurons[-1])
+    fn20_weights.append(fn20_w)
 
-    local_b = torch.Tensor(local_nr_output_neurons).fill_(0.01)
-    biases.append(local_b)
+    fn20_b = torch.Tensor(fn20_nr_output_neurons).fill_(0.01)
+    fn20_biases.append(fn20_b)
 
-    return weights, biases
+    return fn20_weights, fn20_biases
 
 
-def apply_stored_weights(local_model, local_weights, local_biases):
+def apply_stored_weights(fn21_model, fn21_weights, fn21_biases):
     """
-    Applies stored weights and biases to each linear layer in a given model.
+    Description:
+        Applies stored weights and biases to each linear layer in a given model.
+        This function iterates through each layer of the provided model. If the layer is an instance of nn.Linear
+        (a linear layer), the function sets the layer's weights and biases to the stored values provided. This is
+        particularly useful for initializing a model with a specific set of weights and biases, ensuring consistency
+        in model initialization across different instances or runs.
 
-    This function iterates through each layer of the provided model. If the layer is an instance of nn.Linear
-    (a linear layer), the function sets the layer's weights and biases to the stored values provided. This is
-    particularly useful for initializing a model with a specific set of weights and biases, ensuring consistency
-    in model initialization across different instances or runs.
+        Note: This function assumes that the number of tensors in fn21_weights and fn21_biases matches the number of linear
+        layers in local_model. It applies each set of weights and biases to the corresponding linear layer based on their
+        order in the model.
 
-    Parameters:
-    local_model (nn.Module): The neural network model to which the weights and biases will be applied.
-                             The model should be an instance of nn.Module or a subclass thereof.
-    local_weights (List[Tensor]): A list of PyTorch tensors representing the weights for each linear layer in the model.
-                                  The order of tensors in the list should match the order of linear layers in the model.
-    local_biases (List[Tensor]): A list of PyTorch tensors representing the biases for each linear layer in the model.
-                                 Similar to local_weights, the order should match the linear layers' order.
+    Input:
+        fn21_model (nn.Module): The neural network model to which the weights and biases will be applied.
+                                 The model should be an instance of nn.Module or a subclass thereof.
+        fn21_weights (List[Tensor]): A list of PyTorch tensors representing the weights for each linear layer in the model.
+                                      The order of tensors in the list should match the order of linear layers in the model.
+        fn21_biases (List[Tensor]): A list of PyTorch tensors representing the biases for each linear layer in the model.
+                                     Similar to local_weights, the order should match the linear layers' order.
 
-    The function does not return any value; it modifies the model in-place.
+    Output:
+        The function does not return any value; it modifies the model in-place.
 
-    Note: This function assumes that the number of tensors in local_weights and local_biases matches the number of linear
-    layers in local_model. It applies each set of weights and biases to the corresponding linear layer based on their
-    order in the model.
+    Function-code:
+        fn21_
     """
 
-    linear_layer_count = 0
-    for layer in local_model.model:
-        if isinstance(layer, nn.Linear):
+    fn21_linear_layer_count = 0
+    for fn21_layer in fn21_model.model:
+        if isinstance(fn21_layer, nn.Linear):
             # Transpose the weight matrix to match [out_features, in_features] (this is to backtranspose the matrix, it is somehow in the wrong format).
-            transposed_weight = local_weights[linear_layer_count].T
-            layer.weight.data = transposed_weight
-            layer.bias.data = local_biases[linear_layer_count]
-            linear_layer_count += 1
+            fn21_transposed_weight = fn21_weights[fn21_linear_layer_count].T
+            fn21_layer.weight.data = fn21_transposed_weight
+            fn21_layer.bias.data = fn21_biases[fn21_linear_layer_count]
+            fn21_linear_layer_count += 1
 
 
-def get_optimizer(local_model_parameters, local_optimizer_type, local_learning_rate, local_lamda, local_additional_params):
+def get_optimizer(fn22_model_parameters, fn22_optimizer_type, fn22_learning_rate, fn22_lamda, fn22_additional_params):
     """
-    Creates and returns a PyTorch optimizer object based on the specified type and arguments.
+    Description:
+        Creates and returns a PyTorch optimizer object based on the specified type and arguments.
 
-    Args:
-        local_model_parameters: The parameters of the model to be optimized.
-        local_optimizer_type (str): Type of the optimizer (e.g., 'Adam', 'RMSprop', 'SGD', etc.).
-        local_learning_rate (float): Strength of decay.
-        local_additional_params (list): Additional parameters specific to the optimizer type.
+    Input:
+        fn22_model_parameters: The parameters of the model to be optimized.
+        fn22_optimizer_type (str): Type of the optimizer (e.g., 'Adam', 'RMSprop', 'SGD', etc.).
+        fn22_learning_rate (float): Strength of decay.
+        fn22_additional_params (list): Additional parameters specific to the optimizer type.
 
-    Returns:
+    Output:
         An instance of the specified optimizer initialized with the given parameters and arguments.
+
+    Function-code:
+        fn22_
     """
-    local_supported_optimizers = {
+
+    fn22_supported_optimizers = {
         "Adam": optim.Adam,
         "SGD": optim.SGD,
         "RMSprop": optim.RMSprop,
         "Adagrad": optim.Adagrad,
         "Adadelta": optim.Adadelta,
-        "Nesterov-SGD": lambda params, lr, **kwargs: optim.SGD(params, lr, **kwargs, nesterov=True),
+        "Nesterov-SGD": lambda fn23_params, fn23_lr, **fn23_kwargs: optim.SGD(fn23_params, fn23_lr, **fn23_kwargs, nesterov=True),
         "LBFGS": optim.LBFGS,
         "AdamW": optim.AdamW,
         "Adamax": optim.Adamax
     }
 
-    local_optimizer_class = local_supported_optimizers.get(local_optimizer_type)
-    if not local_optimizer_class:
-        raise ValueError(f"Unsupported optimizer type: {local_optimizer_type}")
+    fn22_optimizer_class = fn22_supported_optimizers.get(fn22_optimizer_type)
+    if not fn22_optimizer_class:
+        raise ValueError(f"Unsupported optimizer type: {fn22_optimizer_type}")
 
     # Build the keyword arguments for the optimizer (lr and weight_decay are the consensus keywords for all those optimizers).
     # weight_decay = L2 regularization. No other form of regularization is directly supported for the PyTorch optimizers.
-    local_kwargs = {
-        'lr': local_learning_rate,
-        'weight_decay': local_lamda,
+    fn22_kwargs = {
+        'lr': fn22_learning_rate,
+        'weight_decay': fn22_lamda,
     }
 
     # **dict(zip(['betas', 'momentum', 'dampening', 'alpha', 'tolerance_grad', 'tolerance_change', 'max_iter', 'history_size', 'eps'], local_additional_params))
 
-    if local_optimizer_type == 'Adam':
+    if fn22_optimizer_type == 'Adam':
         # Assuming the first two elements in local_additional_params are beta1 and beta2
-        betas = (local_additional_params[0], local_additional_params[1])
-        local_kwargs['betas'] = betas
+        fn22_betas = (fn22_additional_params[0], fn22_additional_params[1])
+        fn22_kwargs['betas'] = fn22_betas
 
-    local_optimizer = local_optimizer_class(local_model_parameters, **local_kwargs)
-    return local_optimizer
+    fn22_optimizer = fn22_optimizer_class(fn22_model_parameters, **fn22_kwargs)
+    return fn22_optimizer
 
 
-def get_criterion(local_cost_function):
+def get_criterion(fn24_cost_function):
     """
-    Dynamically retrieves and returns a loss function from the PyTorch nn module based on a given string.
+    Description:
+        Dynamically retrieves and returns a loss function from the PyTorch nn module based on a given string.
 
-    Args:
-        local_cost_function (str): Name of the loss function as a string. This should correspond to a class name in torch.nn.
+    Input:
+        fn24_cost_function (str): Name of the loss function as a string. This should correspond to a class name in torch.nn.
 
-    Returns:
-        local_criterion: An instance of the specified loss function class from torch.nn.
+    Output:
+        fn24_criterion: An instance of the specified loss function class from torch.nn.
 
-    Raises:
-        SystemExit: If the specified loss function is not found in torch.nn or if no loss function is provided.
+        Raises:
+            SystemExit: If the specified loss function is not found in torch.nn or if no loss function is provided.
+
+    Function-code:
+        fn24_
     """
-    if isinstance(local_cost_function, str):
-        local_loss_class = getattr(nn, local_cost_function, None)  # Dynamically get the loss class from the nn module
 
-        if local_loss_class is not None:                           # Check if the loss class was successfully retrieved
-            local_criterion = local_loss_class()                   # Instantiate the loss class
-            return local_criterion
+    if isinstance(fn24_cost_function, str):
+        fn24_loss_class = getattr(nn, fn24_cost_function, None)  # Dynamically get the loss class from the nn module
+
+        if fn24_loss_class is not None:                           # Check if the loss class was successfully retrieved
+            fn24_criterion = fn24_loss_class()                   # Instantiate the loss class
+            return fn24_criterion
         else:
-            print(f"Error: '{local_cost_function}' is not a valid loss function in torch.nn.")
+            print(f"Error: '{fn24_cost_function}' is not a valid loss function in torch.nn.")
             sys.exit(1)
     else:
         print("Error: No cost function was specified in the config file!")
         sys.exit(1)
 
 
-def prepare_model_training(local_hyperparams, local_train_dev_dataframes, local_input_size):
+def prepare_model_training(fn25_hyperparams, fn25_train_dev_dataframes, fn25_input_size):
     """
-    Prepares a neural network for training by setting up the model, optimizer, criterion, and data loaders.
+    Description:
+        Prepares a neural network for training by setting up the model, optimizer, criterion, and data loaders.
 
-    Parameters:
-    - local_activation_function_type: Type of the activation function.
-    - local_acti_fun_out: Output activation function type.
-    - local_input_size: Input size of the neural network.
-    - local_nr_neurons: Number of neurons.
-    - local_nr_output_neurons: Number of output neurons.
-    - local_psi_value: Psi value for initializing weights.
-    - local_optimizer_type: Type of optimizer to use.
-    - local_learning_rate: Learning rate for the optimizer.
-    - local_lamda: Lambda value for the optimizer.
-    - local_optim_add_params: Additional parameters for the optimizer.
-    - local_cost_function: Cost function for the model.
-    - local_x_train: Training data.
-    - local_y_train: Training labels.
-    - local_x_dev: Development data.
-    - local_y_dev: Development labels.
-    - local_batch_size: Batch size for data loading.
+    Input:
+        - fn25_activation_function_type: Type of the activation function.
+        - fn25_acti_fun_out: Output activation function type.
+        - fn25_input_size: Input size of the neural network.
+        - fn25_nr_neurons: Number of neurons.
+        - fn25_nr_output_neurons: Number of output neurons.
+        - fn25_psi_value: Psi value for initializing weights.
+        - fn25_optimizer_type: Type of optimizer to use.
+        - fn25_learning_rate: Learning rate for the optimizer.
+        - fn25_lamda: Lambda value for the optimizer.
+        - fn25_optim_add_params: Additional parameters for the optimizer.
+        - fn25_cost_function: Cost function for the model.
+        - fn25_x_train: Training data.
+        - fn25_y_train: Training labels.
+        - fn25_x_dev: Development data.
+        - fn25_y_dev: Development labels.
+        - fn25_batch_size: Batch size for data loading.
 
-    Returns:
-    A tuple containing the model, optimizer, criterion, train loader, and dev loader.
+    Output:
+        A tuple containing the model, optimizer, criterion, train loader, and dev loader.
+
+    Function-code:
+        fn25_
     """
 
-    local_nr_neurons = local_hyperparams['nr_neurons_hidden_layers']
-    local_nr_output_neurons = local_hyperparams['nr_neurons_output_layer']
-    local_activation_function_type = local_hyperparams['activation_function_type']
-    local_acti_fun_out = local_hyperparams['acti_fun_out']
-    local_batch_size = local_hyperparams['batch_size']
-    local_optimizer_type = local_hyperparams['optimizer_type']
-    local_optim_add_params = local_hyperparams['optim_add_params']
-    local_learning_rate = local_hyperparams['learning_rate']
-    local_lamda = local_hyperparams['lamda']
-    local_dropout = local_hyperparams['dropout']
-    local_psi_value = local_hyperparams['psi_value']
-    local_cost_function = local_hyperparams['cost_function']
+    fn25_nr_neurons = fn25_hyperparams['nr_neurons_hidden_layers']
+    fn25_nr_output_neurons = fn25_hyperparams['nr_neurons_output_layer']
+    fn25_activation_function_type = fn25_hyperparams['activation_function_type']
+    fn25_acti_fun_out = fn25_hyperparams['acti_fun_out']
+    fn25_batch_size = fn25_hyperparams['batch_size']
+    fn25_optimizer_type = fn25_hyperparams['optimizer_type']
+    fn25_optim_add_params = fn25_hyperparams['optim_add_params']
+    fn25_learning_rate = fn25_hyperparams['learning_rate']
+    fn25_lamda = fn25_hyperparams['lamda']
+    fn25_dropout = fn25_hyperparams['dropout']
+    fn25_psi_value = fn25_hyperparams['psi_value']
+    fn25_cost_function = fn25_hyperparams['cost_function']
 
-    local_x_train = local_train_dev_dataframes[0]
-    local_y_train = local_train_dev_dataframes[1]
-    local_x_dev = local_train_dev_dataframes[2]
-    local_y_dev = local_train_dev_dataframes[3]
+    fn25_x_train = fn25_train_dev_dataframes[0]
+    fn25_y_train = fn25_train_dev_dataframes[1]
+    fn25_x_dev = fn25_train_dev_dataframes[2]
+    fn25_y_dev = fn25_train_dev_dataframes[3]
 
     # Get activation functions
-    local_activation_function = get_activation_function(local_activation_function_type)
-    local_acti_fun_output = get_activation_function(local_acti_fun_out)
+    fn25_activation_function = get_activation_function(fn25_activation_function_type)
+    fn25_acti_fun_output = get_activation_function(fn25_acti_fun_out)
 
     # Initialize weights and biases
-    local_init_weights, local_init_biases = create_initial_weights(local_input_size, local_nr_neurons, local_nr_output_neurons,
-                                                                   local_activation_function_type, local_psi_value)
+    fn25_init_weights, fn25_init_biases = create_initial_weights(fn25_input_size, fn25_nr_neurons, fn25_nr_output_neurons,
+                                                                 fn25_activation_function_type, fn25_psi_value)
 
     # Create the model
-    local_model = NNmodel(local_input_size, local_nr_neurons, local_activation_function, local_nr_output_neurons,
-                          local_acti_fun_output, local_dropout)
-    apply_stored_weights(local_model, local_init_weights, local_init_biases)
+    fn25_model = NNmodel(fn25_input_size, fn25_nr_neurons, fn25_activation_function, fn25_nr_output_neurons,
+                         fn25_acti_fun_output, fn25_dropout)
+    apply_stored_weights(fn25_model, fn25_init_weights, fn25_init_biases)
 
-    local_model_parameters = local_model.parameters()
-    local_optimizer = get_optimizer(local_model_parameters, local_optimizer_type, local_learning_rate, local_lamda, local_optim_add_params)
+    fn25_model_parameters = fn25_model.parameters()
+    fn25_optimizer = get_optimizer(fn25_model_parameters, fn25_optimizer_type, fn25_learning_rate, fn25_lamda, fn25_optim_add_params)
 
-    local_criterion = get_criterion(local_cost_function)
+    fn25_criterion = get_criterion(fn25_cost_function)
 
     # Convert arrays to tensors
-    local_x_train_tensor = torch.tensor(local_x_train, dtype=torch.float32)  # float32 is common for nn, because they provide a good balance between precision and computational efficiency.
-    local_y_train_tensor = torch.tensor(local_y_train, dtype=torch.float32)
-    local_x_dev_tensor = torch.tensor(local_x_dev, dtype=torch.float32)
-    local_y_dev_tensor = torch.tensor(local_y_dev, dtype=torch.float32)
+    fn25_x_train_tensor = torch.tensor(fn25_x_train, dtype=torch.float32)  # float32 is common for nn, because they provide a good balance between precision and computational efficiency.
+    fn25_y_train_tensor = torch.tensor(fn25_y_train, dtype=torch.float32)
+    fn25_x_dev_tensor = torch.tensor(fn25_x_dev, dtype=torch.float32)
+    fn25_y_dev_tensor = torch.tensor(fn25_y_dev, dtype=torch.float32)
 
-    local_batch_size = int(local_batch_size)
+    fn25_batch_size = int(fn25_batch_size)
 
     # Define a DataLoader
     # Both the train data (x) and the labels (y) are combined into a 'TensorDataset', which makes it easier to iterate over the data during training.
-    local_train_dataset = TensorDataset(local_x_train_tensor, local_y_train_tensor)
+    fn25_train_dataset = TensorDataset(fn25_x_train_tensor, fn25_y_train_tensor)
     # Without shuffling, the rows are always in the same order and the batches are always identical (which is suboptimal for learning).
-    local_train_loader = DataLoader(local_train_dataset, batch_size=local_batch_size, shuffle=True, drop_last=True)  # Drop the last batch if there are not enough examples for the batch size left
-    local_dev_dataset = TensorDataset(local_x_dev_tensor, local_y_dev_tensor)
-    local_dev_loader = DataLoader(local_dev_dataset, batch_size=local_batch_size, shuffle=False, drop_last=True)  # Drop the last batch if there are not enough examples for the batch size left
+    fn25_train_loader = DataLoader(fn25_train_dataset, batch_size=fn25_batch_size, shuffle=True, drop_last=True)  # Drop the last batch if there are not enough examples for the batch size left
+    fn25_dev_dataset = TensorDataset(fn25_x_dev_tensor, fn25_y_dev_tensor)
+    fn25_dev_loader = DataLoader(fn25_dev_dataset, batch_size=fn25_batch_size, shuffle=False, drop_last=True)  # Drop the last batch if there are not enough examples for the batch size left
 
-    return local_model, local_optimizer, local_criterion, local_train_loader, local_dev_loader, local_x_dev_tensor, local_y_dev_tensor
+    return fn25_model, fn25_optimizer, fn25_criterion, fn25_train_loader, fn25_dev_loader, fn25_x_dev_tensor, fn25_y_dev_tensor
 
 
-def train_and_optionally_plot(model_to_train, training_loader, epochs_num, training_optimizer, loss_criterion, x_dev_data, y_dev_data, local_noise_stddev, local_inside_optuna=True, name_of_model='MyModel', local_timestamp='now', local_show_plots=False, plot_every_epochs=10):
+def train_and_optionally_plot(fn26_model_to_train, fn26_training_loader, fn26_epochs_num, fn26_training_optimizer, fn26_loss_criterion, fn26_x_dev_data, fn26_y_dev_data, fn26_noise_stddev, fn26_inside_optuna=True, fn26_name_of_model='MyModel', fn26_timestamp='now', fn26_show_plots=False, fn26_plot_every_epochs=10):
     """
-    Trains the model and plots the training and development loss.
+    Description:
+        Trains the model and plots the training and development loss.
 
-    Args:
-    model_to_train: The neural network model to be trained.
-    training_loader: DataLoader for the training data.
-    epochs_num: Number of epochs for training.
-    training_optimizer: Optimizer used for training.
-    loss_criterion: Loss function.
-    x_dev_data: Tensor for development/validation features.
-    y_dev_data: Tensor for development/validation labels.
-    name_of_model: String that represents the name of the model (decided by the user).
-    plot_every_epochs: Frequency of updating the plot (default: 10 epochs).
+    Input:
+        model_to_train: The neural network model to be trained.
+        training_loader: DataLoader for the training data.
+        epochs_num: Number of epochs for training.
+        training_optimizer: Optimizer used for training.
+        loss_criterion: Loss function.
+        x_dev_data: Tensor for development/validation features.
+        y_dev_data: Tensor for development/validation labels.
+        name_of_model: String that represents the name of the model (decided by the user).
+        plot_every_epochs: Frequency of updating the plot (default: 10 epochs).
+
+    Output:
+
+    Function-code:
+        fn26_
     """
 
-    if not local_inside_optuna:
+    if not fn26_inside_optuna:
         # Initialize the plot
-        local_fig, ax = plt.subplots(figsize=(10, 4))
-        if local_show_plots:
+        fn26_fig, fn26_ax = plt.subplots(figsize=(10, 4))
+        if fn26_show_plots:
             plt.show(block=False)  # Open the plot window
 
         # Add horizontal grid lines
-        ax.yaxis.grid(True)  # Add horizontal grid lines
-        ax.set_axisbelow(True)  # Ensure grid lines are below other plot elements
+        fn26_ax.yaxis.grid(True)  # Add horizontal grid lines
+        fn26_ax.set_axisbelow(True)  # Ensure grid lines are below other plot elements
 
         # Training loop
-        training_history = {'loss_train': [], 'loss_dev': []}  # Keeps track of the losses over each epoch.
+        fn26_training_history = {'loss_train': [], 'loss_dev': []}  # Keeps track of the losses over each epoch.
 
         # Initialize record low variables
-        record_low_train_loss = float('inf')
-        record_low_dev_loss = float('inf')
+        fn26_record_low_train_loss = float('inf')
+        fn26_record_low_dev_loss = float('inf')
 
-        start_time = datetime.now()
+        fn26_start_time = datetime.now()
 
-    for epoch in range(epochs_num):  # Goes from 0 to epochs_num - 1.
-        for batch_x, batch_y in training_loader:  # The training_loader always delivers a new batch.
-            training_optimizer.zero_grad()  # Resets the gradients of the model parameters.
+    for fn26_epoch in range(fn26_epochs_num):  # Goes from 0 to epochs_num - 1.
+        for fn26_batch_x, fn26_batch_y in fn26_training_loader:  # The training_loader always delivers a new batch.
+            fn26_training_optimizer.zero_grad()  # Resets the gradients of the model parameters.
 
-            # Apply Gaussian noise to the batch (if the hyperparameter local_noise_stddev is set to 0, there is no Gaussian noise added).
-            noise = torch.randn_like(batch_x) * local_noise_stddev  # noise_stddev is the standard deviation of the noise
-            noisy_batch_x = batch_x + noise
+            # Apply Gaussian noise to the batch (if the hyperparameter fn26_noise_stddev is set to 0, there is no Gaussian noise added).
+            fn26_noise = torch.randn_like(fn26_batch_x) * fn26_noise_stddev  # noise_stddev is the standard deviation of the noise
+            fn26_noisy_batch_x = fn26_batch_x + fn26_noise
 
-            local_predictions = model_to_train(noisy_batch_x).squeeze()     # Forward pass
-            loss_train = loss_criterion(local_predictions, batch_y)         # Compute the loss
-            loss_train.backward()                                           # Backpropagation
-            training_optimizer.step()                                       # Update weights
+            fn26_predictions = fn26_model_to_train(fn26_noisy_batch_x).squeeze()  # Forward pass
+            fn26_loss_train = fn26_loss_criterion(fn26_predictions, fn26_batch_y)  # Compute the loss
+            fn26_loss_train.backward()  # Backpropagation
+            fn26_training_optimizer.step()  # Update weights
 
         with torch.no_grad():
-            model_to_train.eval()
-            local_predictions = model_to_train(x_dev_data).squeeze()  # Forward pass on dev set
-            local_loss_dev = loss_criterion(local_predictions, y_dev_data)
+            fn26_model_to_train.eval()
+            fn26_predictions = fn26_model_to_train(fn26_x_dev_data).squeeze()  # Forward pass on dev set
+            fn26_loss_dev = fn26_loss_criterion(fn26_predictions, fn26_y_dev_data)
 
-        if not local_inside_optuna:                                         # When run while using Optuna, do not plot anything.
+        if not fn26_inside_optuna:  # When run while using Optuna, do not plot anything.
             # Record training and validation loss
-            training_history['loss_train'].append(loss_train.item())
-            training_history['loss_dev'].append(local_loss_dev.item())
+            fn26_training_history['loss_train'].append(fn26_loss_train.item())
+            fn26_training_history['loss_dev'].append(fn26_loss_dev.item())
 
-            if (epoch + 1) % plot_every_epochs == 0 or epoch == epochs_num - 1:
-                ax.clear()
-                ax.plot(training_history['loss_train'], label='Train set loss')
-                ax.plot(training_history['loss_dev'], label='Dev set loss')
-                ax.set_title(f"{name_of_model} - Epoch: {epoch + 1}", fontsize=16, fontweight='bold')
-                ax.set_xlabel('Epochs', fontsize=14)
-                ax.set_ylabel('Loss', fontsize=14)
-                ax.set_xlim(0, epochs_num)
+            if (fn26_epoch + 1) % fn26_plot_every_epochs == 0 or fn26_epoch == fn26_epochs_num - 1:
+                fn26_ax.clear()
+                fn26_ax.plot(fn26_training_history['loss_train'], label='Train set loss')
+                fn26_ax.plot(fn26_training_history['loss_dev'], label='Dev set loss')
+                fn26_ax.set_title(f"{fn26_name_of_model} - Epoch: {fn26_epoch + 1}", fontsize=16, fontweight='bold')
+                fn26_ax.set_xlabel('Epochs', fontsize=14)
+                fn26_ax.set_ylabel('Loss', fontsize=14)
+                fn26_ax.set_xlim(0, fn26_epochs_num)
 
-                ax.yaxis.grid(True)
-                ax.set_axisbelow(True)
-                ax.legend()
+                fn26_ax.yaxis.grid(True)
+                fn26_ax.set_axisbelow(True)
+                fn26_ax.legend()
 
                 # Update record lows if current losses are lower
-                current_train_loss = training_history['loss_train'][-1]
-                current_dev_loss = training_history['loss_dev'][-1]
+                fn26_current_train_loss = fn26_training_history['loss_train'][-1]
+                fn26_current_dev_loss = fn26_training_history['loss_dev'][-1]
 
-                if current_train_loss < record_low_train_loss:
-                    record_low_train_loss = current_train_loss
+                if fn26_current_train_loss < fn26_record_low_train_loss:
+                    fn26_record_low_train_loss = fn26_current_train_loss
 
-                if current_dev_loss < record_low_dev_loss:
-                    record_low_dev_loss = current_dev_loss
+                if fn26_current_dev_loss < fn26_record_low_dev_loss:
+                    fn26_record_low_dev_loss = fn26_current_dev_loss
 
-                ax.text(0.35, 0.93, f'Train-loss = {round(current_train_loss, 2)} (Lowest: {round(record_low_train_loss, 2)})\n'
-                        f'Dev-loss  = {round(current_dev_loss, 2)} (Lowest: {round(record_low_dev_loss, 2)})',
-                        transform=ax.transAxes, fontsize=12, verticalalignment='top', bbox=dict(boxstyle='round,pad=0.5', facecolor='white', alpha=0.5))
+                fn26_ax.text(0.35, 0.93, f'Train-loss = {round(fn26_current_train_loss, 2)} (Lowest: {round(fn26_record_low_train_loss, 2)})\n'
+                             f'Dev-loss  = {round(fn26_current_dev_loss, 2)} (Lowest: {round(fn26_record_low_dev_loss, 2)})',
+                             transform=fn26_ax.transAxes, fontsize=12, verticalalignment='top', bbox=dict(boxstyle='round,pad=0.5', facecolor='white', alpha=0.5))
 
                 # Add the current runtime info.
-                end_time = datetime.now()
-                runtime = end_time - start_time
-                hours, remainder = divmod(runtime.total_seconds(), 3600)
-                minutes, seconds = divmod(remainder, 60)
-                runtime_text = f"Runtime: {int(hours)}h {int(minutes)}m {int(seconds)}s"
+                fn26_end_time = datetime.now()
+                fn26_runtime = fn26_end_time - fn26_start_time
+                fn26_hours, fn26_remainder = divmod(fn26_runtime.total_seconds(), 3600)
+                fn26_minutes, fn26_seconds = divmod(fn26_remainder, 60)
+                fn26_runtime_text = f"Runtime: {int(fn26_hours)}h {int(fn26_minutes)}m {int(fn26_seconds)}s"
 
                 # Plot the runtime text
-                ax.text(0.35, 0.73, runtime_text, transform=ax.transAxes, fontsize=12, verticalalignment='top', bbox=dict(boxstyle='round,pad=0.5', facecolor='white', alpha=0.5))
+                fn26_ax.text(0.35, 0.73, fn26_runtime_text, transform=fn26_ax.transAxes, fontsize=12, verticalalignment='top', bbox=dict(boxstyle='round,pad=0.5', facecolor='white', alpha=0.5))
 
-                if local_show_plots:                # Only show the plots when the user decides so.
+                if fn26_show_plots:  # Only show the plots when the user decides so.
                     plt.draw()
                     plt.pause(0.1)
 
-                if epoch == epochs_num - 1:
+                if fn26_epoch == fn26_epochs_num - 1:
 
                     # Main directory and subdirectory for saving model .pth files
-                    main_directory = '../output/nn_hyperpara_screener__output'
-                    sub_directory = 'model_pth_files'
+                    fn26_main_directory = '../output/nn_hyperpara_screener__output'
+                    fn26_sub_directory = 'model_pth_files'
 
                     # Full path for saving the model includes both the main directory and subdirectory
-                    save_directory = os.path.join(main_directory, sub_directory)
+                    fn26_save_directory = os.path.join(fn26_main_directory, fn26_sub_directory)
 
                     # Check if the directory exists, and if not, create it
-                    if not os.path.exists(save_directory):
-                        os.makedirs(save_directory)
+                    if not os.path.exists(fn26_save_directory):
+                        os.makedirs(fn26_save_directory)
 
                     # Create the full path for saving the model, including the timestamp
-                    model_save_path = os.path.join(save_directory, f'{name_of_model}__{local_timestamp}.pth')
+                    fn26_model_save_path = os.path.join(fn26_save_directory, f'{fn26_name_of_model}__{fn26_timestamp}.pth')
 
                     # Save the model's state dictionary
-                    torch.save(model_to_train.state_dict(), model_save_path)
+                    torch.save(fn26_model_to_train.state_dict(), fn26_model_save_path)
 
-                    plt.close(local_fig)
-                    return local_fig
+                    plt.close(fn26_fig)
+                    return fn26_fig
 
-    if local_inside_optuna:
+    if fn26_inside_optuna:
         # Evaluate on the development data
         with torch.no_grad():
-            model_to_train.eval()
-            local_predictions = model_to_train(x_dev_data).squeeze()  # Forward pass on dev set
-            local_loss_dev = loss_criterion(local_predictions, y_dev_data)
+            fn26_model_to_train.eval()
+            fn26_predictions = fn26_model_to_train(fn26_x_dev_data).squeeze()  # Forward pass on dev set
+            fn26_loss_dev = fn26_loss_criterion(fn26_predictions, fn26_y_dev_data)
 
             # Calculate percentage error
-            percentage_errors = torch.abs((local_predictions - y_dev_data) / y_dev_data) * 100
+            fn26_percentage_errors = torch.abs((fn26_predictions - fn26_y_dev_data) / fn26_y_dev_data) * 100
 
             # Handle cases where the actual value is 0 to avoid division by zero
-            percentage_errors[y_dev_data == 0] = torch.abs(local_predictions - y_dev_data)[y_dev_data == 0] * 100
+            fn26_percentage_errors[fn26_y_dev_data == 0] = torch.abs(fn26_predictions - fn26_y_dev_data)[fn26_y_dev_data == 0] * 100
 
             # Calculate mean percentage error
             global study_mean_percentage_error  # Export by assigning to a global variable (because the return goes to the optuna module and is not easily accessible)
-            study_mean_percentage_error = torch.mean(percentage_errors).item()  # Convert to Python scalar
+            study_mean_percentage_error = torch.mean(fn26_percentage_errors).item()  # Convert to Python scalar
             study_mean_percentage_error = round(study_mean_percentage_error, 2)
 
-            return local_loss_dev
+            return fn26_loss_dev
 
 
-def calculate_mean_percent_error(local_predictions, local_y_dev_tensor):
+def calculate_mean_percent_error(fn27_predictions, fn27_y_dev_tensor):
+    """
+    Description:
+        Calculates the mean percentage error between the predicted values and the actual values.
+        This function is useful for evaluating the performance of a regression model.
+
+    Input:
+        fn27_predictions (Tensor): Predicted values from the model.
+        fn27_y_dev_tensor (Tensor): Actual values (ground truth).
+
+    Output:
+        float: The mean percentage error calculated from the predictions and actual values.
+
+    Function-code:
+        fn27_
+    """
+
     # Ensure both tensors are of the same type and device
-    local_predictions = local_predictions.to(local_y_dev_tensor.device).type(local_y_dev_tensor.dtype)
+    fn27_predictions = fn27_predictions.to(fn27_y_dev_tensor.device).type(fn27_y_dev_tensor.dtype)
 
     # Calculate the percent error for each element
-    local_percent_error = torch.abs(local_predictions - local_y_dev_tensor) / torch.abs(local_y_dev_tensor) * 100
+    fn27_percent_error = torch.abs(fn27_predictions - fn27_y_dev_tensor) / torch.abs(fn27_y_dev_tensor) * 100
     # print("Absolute Differences:", absolute_differences)
 
     # Calculate the mean of these percent errors
-    local_mean_percent_error = round(torch.mean(local_percent_error).item(), 2)
-    # print("Percent Errors:", local_percent_error)
+    fn27_mean_percent_error = round(torch.mean(fn27_percent_error).item(), 2)
+    # print("Percent Errors:", fn27_percent_error)
 
-    return local_mean_percent_error
+    return fn27_mean_percent_error
 
 
-def evaluate_model(model_eval, x_dev_norm, y_dev_data, model_index, config_df):
+def evaluate_model(fn28_model_eval, fn28_x_dev_norm, fn28_y_dev_data, fn28_model_index, fn28_config_df):
     """
-    Evaluates the trained model on the development set, calculates the mean percent error, and generates comparisons between predictions and actual labels for the first ten instances. This provides insights into the model's prediction accuracy and a sample of individual predictions.
+    Description:
+        Evaluates the trained model on the development set, calculates the mean percent error, and generates comparisons between predictions and actual labels for the first ten instances. This provides insights into the model's prediction accuracy and a sample of individual predictions.
+        The function operates in the following steps:
+        1. Converts the development set features and labels into PyTorch tensors.
+        2. Sets the model to evaluation mode and generates predictions for the development set.
+        3. Calculates the mean percent error between predictions and actual labels and updates this in the provided DataFrame.
+        4. Generates a list of comparison strings between the model's predictions and the actual labels for the first ten instances.
 
-    Args:
-    model_eval: The trained neural network model to be evaluated.
-    x_dev_norm: Normalized features for the development set as a NumPy array.
-    y_dev_data: Actual labels for the development set as a NumPy array.
-    model_index: An identifier for the model, used for indexing within the configuration DataFrame.
-    config_df: A DataFrame to record the evaluation results, specifically the mean percent error.
+    Input:
+        fn28_model_eval: The trained neural network model to be evaluated.
+        fn28_x_dev_norm: Normalized features for the development set as a NumPy array.
+        fn28_y_dev_data: Actual labels for the development set as a NumPy array.
+        fn28_model_index: An identifier for the model, used for indexing within the configuration DataFrame.
+        fn28_config_df: A DataFrame to record the evaluation results, specifically the mean percent error.
 
-    Returns:
-    local_comparisons: A list of strings, each containing a comparison of predicted and actual values for an individual instance from the development set (limited to the first ten instances).
+    Output:
+        fn28_comparisons: A list of strings, each containing a comparison of predicted and actual values for an individual instance from the development set (limited to the first ten instances).
 
-    The function operates in the following steps:
-    1. Converts the development set features and labels into PyTorch tensors.
-    2. Sets the model to evaluation mode and generates predictions for the development set.
-    3. Calculates the mean percent error between predictions and actual labels and updates this in the provided DataFrame.
-    4. Generates a list of comparison strings between the model's predictions and the actual labels for the first ten instances.
+    Function-code:
+        fn28_
     """
 
     # Convert NumPy arrays to PyTorch tensors
-    local_x_dev_tensor = torch.tensor(x_dev_norm, dtype=torch.float32)
-    local_y_dev_tensor = torch.tensor(y_dev_data, dtype=torch.float32)
+    fn28_x_dev_tensor = torch.tensor(fn28_x_dev_norm, dtype=torch.float32)
+    fn28_y_dev_tensor = torch.tensor(fn28_y_dev_data, dtype=torch.float32)
 
     # Evaluate the model
     with torch.no_grad():
-        model_eval.eval()
-        local_predictions = model_eval(local_x_dev_tensor).squeeze()
+        fn28_model_eval.eval()
+        fn28_predictions = fn28_model_eval(fn28_x_dev_tensor).squeeze()
 
         # Calculate % error (for nice and intuitive reporting)
-        mean_percent_error = calculate_mean_percent_error(local_predictions, local_y_dev_tensor)
-        if '%err' not in config_df.columns:
-            config_df['%err'] = None
-        config_df.at[model_index, '%err'] = mean_percent_error
+        fn28_mean_percent_error = calculate_mean_percent_error(fn28_predictions, fn28_y_dev_tensor)
+        if '%err' not in fn28_config_df.columns:
+            fn28_config_df['%err'] = None
+        fn28_config_df.at[fn28_model_index, '%err'] = fn28_mean_percent_error
 
-    local_comparisons = []
+    fn28_comparisons = []
 
-    for local_i in range(10):
-        local_pred = local_predictions[local_i].item()
-        local_rounded_pred = round_to_three_custom(local_pred)
-        local_actual = local_y_dev_tensor[local_i].item()
-        local_rounded_actual = round_to_three_custom(local_actual)
-        local_comparison = f"Prediction: {local_rounded_pred}, Actual: {local_rounded_actual}"
-        local_comparisons.append(local_comparison)
+    for fn28_i in range(10):
+        fn28_pred = fn28_predictions[fn28_i].item()
+        fn28_rounded_pred = round_to_three_custom(fn28_pred)
+        fn28_actual = fn28_y_dev_tensor[fn28_i].item()
+        fn28_rounded_actual = round_to_three_custom(fn28_actual)
+        fn28_comparison = f"Prediction: {fn28_rounded_pred}, Actual: {fn28_rounded_actual}"
+        fn28_comparisons.append(fn28_comparison)
 
-    return local_comparisons
+    return fn28_comparisons
 
 
 def pandas_df_to_pdf(dataframe, local_timestamp, figure_filenames, filename_dataset, nr_features, nr_examples, local_examples_model_predictions):
+    """
+    Description:
+        Converts a pandas DataFrame into a PDF report. This function sorts the DataFrame based on a specified column,
+        prepares plots, tables, and additional textual information, and compiles them into a PDF. It is particularly
+        useful for creating detailed reports from DataFrame data, including visualizations.
+
+    Input:
+        fn29_dataframe (DataFrame): The DataFrame to be converted into a PDF report.
+        fn29_local_timestamp (str): A timestamp string used to name the PDF file.
+        fn29_figure_filenames (list): A list of filenames (strings) for figures to be included in the report.
+        fn29_filename_dataset (str): The filename of the dataset used.
+        fn29_nr_features (int): The number of features in the dataset.
+        fn29_nr_examples (int): The number of examples in the dataset.
+        fn29_examples_model_predictions (dict): A dictionary containing model predictions to be included in the report.
+
+    Output:
+        None: The function generates a PDF file as an output and does not return a value.
+
+    Function-code:
+        fn29_
+    """
+
     filename = 'nn_hyperpara_screener output     ' + local_timestamp + '.pdf'
 
     # Sort the DataFrame in descending order based on 'mean_absolute_error'
@@ -1405,6 +1560,25 @@ def pandas_df_to_pdf(dataframe, local_timestamp, figure_filenames, filename_data
 
 
 def optuna_output_to_pdf(study, sublocal_mean_percent_error, sublocal_timestamp, local_cost_function):
+    """
+    Description:
+        Converts the results of an Optuna optimization study into a detailed PDF report. This function generates a summary
+        of the study, including the number of trials, mean percentage error, best hyperparameters, and visualizations
+        of the optimization process. The PDF report provides a comprehensive overview of the study's outcomes and
+        is useful for analyzing and presenting the results of the hyperparameter optimization.
+
+    Input:
+        fn29_study (Study): The Optuna study object containing the results of the optimization.
+        fn29_sublocal_mean_percent_error (float): The mean percentage error of the best trial in the study.
+        fn29_sublocal_timestamp (str): Timestamp used for naming the PDF file.
+        fn29_local_cost_function (str): The cost function used in the study.
+
+    Output:
+        None: The function generates a PDF file as an output and does not return a value.
+
+    Function-code:
+        fn30_
+    """
 
     file_path = "../output/nn_hyperpara_screener__output/optuna_results/optuna_report__{}.pdf".format(sublocal_timestamp)
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
@@ -1521,24 +1695,27 @@ def optuna_output_to_pdf(study, sublocal_mean_percent_error, sublocal_timestamp,
 
 def parse_optuna_hyperparameter_ranges(local_csv_file):
     """
-    Parses a CSV file to extract hyperparameter ranges for Optuna optimization.
+    Description:
+        Parses a CSV file to extract hyperparameter ranges for Optuna optimization.
 
-    The function reads a CSV file where each column represents a different hyperparameter.
-    It processes each column to determine the type of hyperparameter (e.g., list of categorical options,
-    numerical range, single value) and formats it accordingly for use in hyperparameter optimization.
+        The function reads a CSV file where each column represents a different hyperparameter.
+        It processes each column to determine the type of hyperparameter (e.g., list of categorical options,
+        numerical range, single value) and formats it accordingly for use in hyperparameter optimization.
+        The function supports:
+        - Categorical hyperparameters specified as a comma-separated string.
+        - Numerical ranges specified as a min-max pair, separated by a comma.
+        - Single numerical or categorical values.
+        - Special handling for 'batch_size' to interpret it as a single value or a list of values.
 
-    Args:
-    local_csv_file: A string representing the path to the CSV file containing hyperparameter configurations.
+    Input:
+        local_csv_file: A string representing the path to the CSV file containing hyperparameter configurations.
 
-    Returns:
-    local_hyperparameters: A dictionary where keys are hyperparameter names and values are the respective
+    Output:
+        local_hyperparameters: A dictionary where keys are hyperparameter names and values are the respective
                            hyperparameter configurations (ranges, lists of options, or single values).
 
-    The function supports:
-    - Categorical hyperparameters specified as a comma-separated string.
-    - Numerical ranges specified as a min-max pair, separated by a comma.
-    - Single numerical or categorical values.
-    - Special handling for 'batch_size' to interpret it as a single value or a list of values.
+    Function-code:
+        fn31_
     """
 
     local_df = pd.read_csv(local_csv_file)
@@ -1567,8 +1744,43 @@ def parse_optuna_hyperparameter_ranges(local_csv_file):
 
 
 def run_optuna_study(local_train_dev_dataframes, local_timestamp, local_n_trials, local_input_size):
+    """
+    Description:
+        Conducts an Optuna hyperparameter optimization study for a neural network model. This function sets up
+        and executes an Optuna study to find the best hyperparameters for the given model architecture and data.
+        It also generates and saves visualization plots for the study and compiles a detailed PDF report of the results.
+
+    Input:
+        fn30_local_train_dev_dataframes (tuple of DataFrames): Tuple containing training and development datasets.
+        fn30_local_timestamp (str): A timestamp string used for naming output files.
+        fn30_local_n_trials (int): The number of trials to run in the Optuna study.
+        fn30_local_input_size (int): The size of the input layer for the neural network model.
+
+    Output:
+        dict: The best hyperparameters found by the Optuna study.
+
+    Function-code:
+        fn32_
+    """
 
     def objective(trial, sublocal_train_dev_dataframes, sublocal_input_size):
+        """
+        Description:
+            The objective function for the Optuna study, defining how the model should be trained and evaluated.
+            It suggests hyperparameters, builds a model with those hyperparameters, and calculates the loss on the
+            development set. The function is called by the Optuna study for each trial.
+
+        Input:
+            fn30_trial (Trial): The current Optuna trial instance.
+            fn30_sublocal_train_dev_dataframes (tuple of DataFrames): Tuple containing training and development datasets.
+            fn30_sublocal_input_size (int): The size of the input layer for the neural network model.
+
+        Output:
+            float: The loss of the model on the development set for the current set of hyperparameters.
+
+        Function-code:
+            fn33_
+        """
 
         sublocal_hyperparameter_ranges = parse_optuna_hyperparameter_ranges('../input/nn_hyperpara_screener_optuna_ranges.csv')
 
@@ -1578,6 +1790,7 @@ def run_optuna_study(local_train_dev_dataframes, local_timestamp, local_n_trials
 
         # Dynamically creating hyperparameters for each layer's neuron count
         local_nr_neurons = []
+        local_num_neurons = 1
         for local_i in range(1, num_layers + 1):         # So that the first hidden layer has the number 1 (nr. 0 could be confused with input layer)
             local_num_neurons = trial.suggest_int(f'neurons_hidden_layer_{local_i}', *sublocal_hyperparameter_ranges['nr_neurons_hidden_layers'])
         local_nr_neurons.append(local_num_neurons)
