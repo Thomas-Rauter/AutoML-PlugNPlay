@@ -1706,9 +1706,9 @@ def parse_optuna_hyperparameter_ranges(fn31_csv_file):
     Description:
         Parses a CSV file to extract hyperparameter ranges for Optuna optimization.
 
-        The function reads a CSV file where each column represents a different hyperparameter.
-        It processes each column to determine the type of hyperparameter (e.g., list of categorical options,
-        numerical range, single value) and formats it accordingly for use in hyperparameter optimization.
+        The function reads a CSV file where the first column from the second row onwards contains the names of hyperparameters,
+        and the second column contains their values. It processes each row to determine the type of hyperparameter
+        (e.g., list of categorical options, numerical range, single value) and formats it accordingly for use in hyperparameter optimization.
         The function supports:
         - Categorical hyperparameters specified as a comma-separated string.
         - Numerical ranges specified as a min-max pair, separated by a comma.
@@ -1726,28 +1726,29 @@ def parse_optuna_hyperparameter_ranges(fn31_csv_file):
         fn31_
     """
 
-    fn31_df = pd.read_csv(fn31_csv_file)
+    fn31_df = pd.read_csv(fn31_csv_file, header=None, skiprows=1)
     fn31_hyperparameters = {}
-    for fn31_column in fn31_df.columns:
-        fn31_values = str(fn31_df[fn31_column].values[0])
+    for fn31_index, fn31_row in fn31_df.iterrows():
+        fn31_name = fn31_row[0]
+        fn31_value = str(fn31_row[1])
 
-        # Special handling for 'batch_size'
-        if fn31_column == 'batch_size':
-            if ',' in fn31_values:  # It's a list of batch sizes
-                fn31_hyperparameters[fn31_column] = [int(val.strip()) for val in fn31_values.split(',')]
+        if fn31_name == 'batch_size':
+            if ',' in fn31_value:  # It's a list of batch sizes
+                fn31_hyperparameters[fn31_name] = [int(fn31_val.strip()) for fn31_val in fn31_value.split(',')]
             else:  # It's a single batch size
-                fn31_hyperparameters[fn31_column] = int(fn31_values)
-        elif fn31_values[0].isalpha():  # It's a list of categorical options
-            if ',' in fn31_values:
-                fn31_hyperparameters[fn31_column] = fn31_values.split(',')
+                fn31_hyperparameters[fn31_name] = int(fn31_value)
+        elif fn31_value[0].isalpha():  # It's a list of categorical options
+            if ',' in fn31_value:
+                fn31_hyperparameters[fn31_name] = fn31_value.split(',')
             else:
-                fn31_hyperparameters[fn31_column] = fn31_values
-        elif fn31_values[0].isdigit():  # It's a numerical range
-            if ',' in fn31_values:
-                fn31_min_val, fn31_max_val = map(float, fn31_values.split(','))
-                fn31_hyperparameters[fn31_column] = (fn31_min_val, fn31_max_val)
+                fn31_hyperparameters[fn31_name] = fn31_value
+        elif fn31_value[0].isdigit():  # It's a numerical range
+            if ',' in fn31_value:
+                fn31_min_val, fn31_max_val = map(float, fn31_value.split(','))
+                fn31_hyperparameters[fn31_name] = (fn31_min_val, fn31_max_val)
             else:
-                fn31_hyperparameters[fn31_column] = int(fn31_values)
+                fn31_hyperparameters[fn31_name] = int(fn31_value)
+
     return fn31_hyperparameters
 
 
@@ -1771,7 +1772,7 @@ def run_optuna_study(fn32_train_dev_dataframes, fn32_timestamp, fn32_n_trials, f
         fn32_
     """
 
-    def objective(fn33_trial, fn33_train_dev_dataframes, fn33_input_size):
+    def objective(fn33_trial, fn33_train_dev_dataframes, fn33_input_size, fn33_hyperparameter_ranges):
         """
         Description:
             The objective function for the Optuna study, defining how the model should be trained and evaluated.
@@ -1789,8 +1790,6 @@ def run_optuna_study(fn32_train_dev_dataframes, fn32_timestamp, fn32_n_trials, f
         Function-code:
             fn33_
         """
-
-        fn33_hyperparameter_ranges = parse_optuna_hyperparameter_ranges('../input/nn_hyperpara_screener_optuna_ranges.csv')
 
         # Hyperparameters to be tuned by Optuna
         # Hyperparameter range for the number of layers
@@ -1857,7 +1856,9 @@ def run_optuna_study(fn32_train_dev_dataframes, fn32_timestamp, fn32_n_trials, f
     global global_study_mean_percentage_error
 
     fn32_study = optuna.create_study(direction='minimize')
-    fn32_study.optimize(lambda trial: objective(trial, fn32_train_dev_dataframes, fn32_input_size), fn32_n_trials)
+
+    fn32_hyperparameter_ranges = parse_optuna_hyperparameter_ranges('../input/nn_hyperpara_screener_optuna_ranges.csv')
+    fn32_study.optimize(lambda trial: objective(trial, fn32_train_dev_dataframes, fn32_input_size, fn32_hyperparameter_ranges), fn32_n_trials)
 
     #################################################################################
     # Generate a range of plots that Optuna has to offer
