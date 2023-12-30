@@ -23,7 +23,6 @@ import numpy as np
 import glob
 import optuna
 import subprocess
-from copy import deepcopy
 import torch.optim as optim
 
 
@@ -287,8 +286,8 @@ def delete_pth_files():
     for fn5_file_path in fn5_pth_files:
         try:
             os.remove(fn5_file_path)
-        except Exception as e:
-            pass  # Optionally handle errors silently or log them
+        except OSError as e:
+            print(f"Error deleting file {fn5_file_path}: {e}")
 
 
 def read_and_process_config(fn6_nr_examples):
@@ -565,10 +564,10 @@ def assign_hyperparameters_from_config(fn12_pandas_df, fn12_row_nr, fn12_amount_
     """
 
     fn12_variable_names = ['model_name', 'nr_neurons_str', 'activation_function_type', 'acti_fun_out', 'nr_epochs',
-                            'batch_size', 'noise_stddev', 'optimizer_type', 'learning_rate', 'lamda', 'dropout',
-                            'psi_value', 'cost_function']
+                           'batch_size', 'noise_stddev', 'optimizer_type', 'learning_rate', 'lamda', 'dropout',
+                           'psi_value', 'cost_function']
     fn12_column_names = ['model_name', 'neurons', 'acti_fun', 'acti_fun_out', 'epochs', 'batch_size',
-                          'noise', 'optimizer', 'alpha', 'lamda', 'dropout', 'psi', 'cost_fun']
+                         'noise', 'optimizer', 'alpha', 'lamda', 'dropout', 'psi', 'cost_fun']
 
     fn12_hyperparams = {}
 
@@ -890,7 +889,7 @@ def apply_stored_weights(fn21_model, fn21_weights, fn21_biases):
         in model initialization across different instances or runs.
 
         Note: This function assumes that the number of tensors in fn21_weights and fn21_biases matches the number of linear
-        layers in local_model. It applies each set of weights and biases to the corresponding linear layer based on their
+        layers in fn21_model. It applies each set of weights and biases to the corresponding linear layer based on their
         order in the model.
 
     Input:
@@ -1026,7 +1025,7 @@ def prepare_model_training(fn25_hyperparams, fn25_train_dev_dataframes, fn25_inp
         - fn25_batch_size: Batch size for data loading.
 
     Output:
-        A tuple containing the model, optimizer, criterion, train loader, and dev loader.
+        fn25_model, fn25_optimizer, fn25_criterion, fn25_train_loader, fn25_dev_loader, fn25_x_dev_tensor, fn25_y_dev_tensor
 
     Function-code:
         fn25_
@@ -1109,6 +1108,13 @@ def train_and_optionally_plot(fn26_model_to_train, fn26_training_loader, fn26_ep
         fn26_
     """
 
+    fn26_training_history = None
+    fn26_ax = None
+    fn26_record_low_train_loss = None
+    fn26_record_low_dev_loss = None
+    fn26_start_time = None
+    fn26_fig = None
+
     if not fn26_inside_optuna:
         # Initialize the plot
         fn26_fig, fn26_ax = plt.subplots(figsize=(10, 4))
@@ -1127,6 +1133,8 @@ def train_and_optionally_plot(fn26_model_to_train, fn26_training_loader, fn26_ep
         fn26_record_low_dev_loss = float('inf')
 
         fn26_start_time = datetime.now()
+
+    fn26_loss_train = None
 
     for fn26_epoch in range(fn26_epochs_num):  # Goes from 0 to epochs_num - 1.
         for fn26_batch_x, fn26_batch_y in fn26_training_loader:  # The training_loader always delivers a new batch.
@@ -1228,9 +1236,9 @@ def train_and_optionally_plot(fn26_model_to_train, fn26_training_loader, fn26_ep
             fn26_percentage_errors[fn26_y_dev_data == 0] = torch.abs(fn26_predictions - fn26_y_dev_data)[fn26_y_dev_data == 0] * 100
 
             # Calculate mean percentage error
-            global study_mean_percentage_error  # Export by assigning to a global variable (because the return goes to the optuna module and is not easily accessible)
-            study_mean_percentage_error = torch.mean(fn26_percentage_errors).item()  # Convert to Python scalar
-            study_mean_percentage_error = round(study_mean_percentage_error, 2)
+            global global_study_mean_percentage_error  # Export by assigning to a global variable (because the return goes to the optuna module and is not easily accessible)
+            global_study_mean_percentage_error = torch.mean(fn26_percentage_errors).item()  # Convert to Python scalar
+            global_study_mean_percentage_error = round(global_study_mean_percentage_error, 2)
 
             return fn26_loss_dev
 
@@ -1318,7 +1326,7 @@ def evaluate_model(fn28_model_eval, fn28_x_dev_norm, fn28_y_dev_data, fn28_model
     return fn28_comparisons
 
 
-def pandas_df_to_pdf(dataframe, local_timestamp, figure_filenames, filename_dataset, nr_features, nr_examples, local_examples_model_predictions):
+def pandas_df_to_pdf(fn29_dataframe, fn29_timestamp, fn29_figure_filenames, fn29_filename_dataset, fn29_nr_features, fn29_nr_examples, fn29_examples_model_predictions):
     """
     Description:
         Converts a pandas DataFrame into a PDF report. This function sorts the DataFrame based on a specified column,
@@ -1341,95 +1349,95 @@ def pandas_df_to_pdf(dataframe, local_timestamp, figure_filenames, filename_data
         fn29_
     """
 
-    filename = 'nn_hyperpara_screener output     ' + local_timestamp + '.pdf'
+    fn29_filename = 'nn_hyperpara_screener output     ' + fn29_timestamp + '.pdf'
 
     # Sort the DataFrame in descending order based on 'mean_absolute_error'
-    sorted_dataframe = dataframe.sort_values(by='%err', ascending=True)
+    fn29_sorted_dataframe = fn29_dataframe.sort_values(by='%err', ascending=True)
 
     # Create a list of expected filenames based on sorted_dataframe's 'model_name'
-    expected_filenames = [f"{row['model_name']}.png" for index, row in sorted_dataframe.iterrows()]
+    fn29_expected_filenames = [f"{fn29_row['model_name']}.png" for fn29_index, fn29_row in fn29_sorted_dataframe.iterrows()]
 
     # Reorder figure_filenames to match the sorted order
-    figure_filenames = [filename for filename in expected_filenames if filename in figure_filenames]
+    fn29_figure_filenames = [fn29_filename for fn29_filename in fn29_expected_filenames if fn29_filename in fn29_figure_filenames]
 
     # Define main directory and subdirectory
-    main_directory = '../output/nn_hyperpara_screener__output'
-    sub_directory = 'manual_results'
+    fn29_main_directory = '../output/nn_hyperpara_screener__output'
+    fn29_sub_directory = 'manual_results'
 
     # Create full path for the subdirectory
-    sub_directory_path = os.path.join(main_directory, sub_directory)
+    fn29_sub_directory_path = os.path.join(fn29_main_directory, fn29_sub_directory)
 
     # Check if the subdirectory exists, if not, create it
-    if not os.path.exists(sub_directory_path):
-        os.makedirs(sub_directory_path)
+    if not os.path.exists(fn29_sub_directory_path):
+        os.makedirs(fn29_sub_directory_path)
 
-    pdf_full_path = os.path.join(sub_directory_path, filename)
+    fn29_pdf_full_path = os.path.join(fn29_sub_directory_path, fn29_filename)
 
     # Create a PDF document with ReportLab
-    pdf = SimpleDocTemplate(pdf_full_path, pagesize=landscape(A4), topMargin=0.5 * inch, bottomMargin=0.5 * inch)
-    elements = []
+    fn29_pdf = SimpleDocTemplate(fn29_pdf_full_path, pagesize=landscape(A4), topMargin=0.5 * inch, bottomMargin=0.5 * inch)
+    fn29_elements = []
 
     # Prepare title
-    styles = getSampleStyleSheet()
-    title = filename.split('.')[0]
-    title_paragraph = Paragraph(title, styles['Title'])
+    fn29_styles = getSampleStyleSheet()
+    fn29_title = fn29_filename.split('.')[0]
+    fn29_title_paragraph = Paragraph(fn29_title, fn29_styles['Title'])
 
     # Add title to elements
-    elements.append(title_paragraph)
+    fn29_elements.append(fn29_title_paragraph)
 
     # Add extra space after title
-    elements.append(Spacer(1, 0.5 * inch))  # Increase space after title (second number, the one after the ,)
+    fn29_elements.append(Spacer(1, 0.5 * inch))  # Increase space after title (second number, the one after the ,)
 
     # Add a line that states the dataset used.
-    dataset_paragraph_style = ParagraphStyle('DatasetInfo', fontSize=12, spaceBefore=10, spaceAfter=10)
-    dataset_info = f"Filename dataset: {filename_dataset}"
-    dataset_paragraph = Paragraph(dataset_info, dataset_paragraph_style)
-    elements.append(dataset_paragraph)
+    fn29_dataset_paragraph_style = ParagraphStyle('DatasetInfo', fontSize=12, spaceBefore=10, spaceAfter=10)
+    fn29_dataset_info = f"Filename dataset: {fn29_filename_dataset}"
+    fn29_dataset_paragraph = Paragraph(fn29_dataset_info, fn29_dataset_paragraph_style)
+    fn29_elements.append(fn29_dataset_paragraph)
 
     # Add a line that states the number of features for this dataset.
-    dataset_paragraph_style = ParagraphStyle('DatasetInfo', fontSize=12, spaceBefore=10, spaceAfter=10)
-    dataset_info = f"Nr. of features: {nr_features}"
-    dataset_paragraph = Paragraph(dataset_info, dataset_paragraph_style)
-    elements.append(dataset_paragraph)
+    fn29_dataset_paragraph_style = ParagraphStyle('DatasetInfo', fontSize=12, spaceBefore=10, spaceAfter=10)
+    fn29_dataset_info = f"Nr. of features: {fn29_nr_features}"
+    fn29_dataset_paragraph = Paragraph(fn29_dataset_info, fn29_dataset_paragraph_style)
+    fn29_elements.append(fn29_dataset_paragraph)
 
     # Add a line that states the number of examples for this dataset.
-    dataset_paragraph_style = ParagraphStyle('DatasetInfo', fontSize=12, spaceBefore=10, spaceAfter=10)
-    dataset_info = f"Nr. of examples train set: {nr_examples}"
-    dataset_paragraph = Paragraph(dataset_info, dataset_paragraph_style)
-    elements.append(dataset_paragraph)
+    fn29_dataset_paragraph_style = ParagraphStyle('DatasetInfo', fontSize=12, spaceBefore=10, spaceAfter=10)
+    fn29_dataset_info = f"Nr. of examples train set: {fn29_nr_examples}"
+    fn29_dataset_paragraph = Paragraph(fn29_dataset_info, fn29_dataset_paragraph_style)
+    fn29_elements.append(fn29_dataset_paragraph)
 
     # Add a line that states the number of examples for this dataset.
-    dataset_paragraph_style = ParagraphStyle('DatasetInfo', fontSize=13, spaceBefore=15, spaceAfter=10)
-    dataset_info = f"Explanation of the short forms of the column names:"
-    dataset_paragraph = Paragraph(dataset_info, dataset_paragraph_style)
-    elements.append(dataset_paragraph)
+    fn29_dataset_paragraph_style = ParagraphStyle('DatasetInfo', fontSize=13, spaceBefore=15, spaceAfter=10)
+    fn29_dataset_info = f"Explanation of the short forms of the column names:"
+    fn29_dataset_paragraph = Paragraph(fn29_dataset_info, fn29_dataset_paragraph_style)
+    fn29_elements.append(fn29_dataset_paragraph)
 
     # Add a line that states the number of examples for this dataset.
-    dataset_paragraph_style = ParagraphStyle('DatasetInfo', fontSize=11, spaceBefore=10, spaceAfter=10)
-    dataset_info = f"alpha = learning rate, noise = amount of Gaussian noise, psi = parameter of weight initialization, %err = mean % error on dev set;"
-    dataset_paragraph = Paragraph(dataset_info, dataset_paragraph_style)
-    elements.append(dataset_paragraph)
+    fn29_dataset_paragraph_style = ParagraphStyle('DatasetInfo', fontSize=11, spaceBefore=10, spaceAfter=10)
+    fn29_dataset_info = f"alpha = learning rate, noise = amount of Gaussian noise, psi = parameter of weight initialization, %err = mean % error on dev set;"
+    fn29_dataset_paragraph = Paragraph(fn29_dataset_info, fn29_dataset_paragraph_style)
+    fn29_elements.append(fn29_dataset_paragraph)
 
     # Add a spacer
-    elements.append(Spacer(1, 0.2 * inch))  # Add more space between title and table
+    fn29_elements.append(Spacer(1, 0.2 * inch))  # Add more space between title and table
 
     # Prepare data for the table (including column headers)
-    local_data = [sorted_dataframe.columns.tolist()] + sorted_dataframe.values.tolist()
+    fn29_data = [fn29_sorted_dataframe.columns.tolist()] + fn29_sorted_dataframe.values.tolist()
 
-    additional_row = ['', 'Hyperparameters', '', '', '', '', '', '', '', '', '', '', '', '']  # Fewer cells than total columns
-    local_data.insert(0, additional_row)
+    fn29_additional_row = ['', 'Hyperparameters', '', '', '', '', '', '', '', '', '', '', '', '']  # Fewer cells than total columns
+    fn29_data.insert(0, fn29_additional_row)
 
     # Create a table with the data
-    table = Table(local_data)
+    fn29_table = Table(fn29_data)
 
     # Find the index of 'mean_absolute_error' column
-    mae_index = sorted_dataframe.columns.tolist().index('%err')
+    fn29_mae_index = fn29_sorted_dataframe.columns.tolist().index('%err')
 
-    font_size = 8
+    fn29_font_size = 8
 
     # Define the style for the table
-    style = TableStyle([
-        ('FONTSIZE', (0, 0), (-1, -1), font_size),  # Fontsize for all rows of the table.
+    fn29_style = TableStyle([
+        ('FONTSIZE', (0, 0), (-1, -1), fn29_font_size),  # Fontsize for all rows of the table.
 
         ('SPAN', (1, 0), (12, 0)),  # Span the large cell across columns 1 to 11
         ('SPAN', (13, 0), (13, 0)),  # Span for the last cell in the first row
@@ -1460,106 +1468,106 @@ def pandas_df_to_pdf(dataframe, local_timestamp, figure_filenames, filename_data
         ('BACKGROUND', (0, 2), (0, -1), colors.lightblue),
 
         # Additional styles for 'mean_absolute_error' column, now starting from the third row (index 2)
-        ('BACKGROUND', (mae_index, 2), (mae_index, -1), colors.lightcoral),  # Column cells background color
-        ('BACKGROUND', (mae_index, 1), (mae_index, 1), colors.darkred)  # Header cell background color
+        ('BACKGROUND', (fn29_mae_index, 2), (fn29_mae_index, -1), colors.lightcoral),  # Column cells background color
+        ('BACKGROUND', (fn29_mae_index, 1), (fn29_mae_index, 1), colors.darkred)  # Header cell background color
     ])
 
     # Apply the style to the table
-    table.setStyle(style)
+    fn29_table.setStyle(fn29_style)
 
     # Add the table to the elements that will be written to the PDF
-    elements.append(table)
+    fn29_elements.append(fn29_table)
 
     # Add a spacer
-    elements.append(Spacer(1, 0.3 * inch))  # Add more space between value table and loss-plots.
+    fn29_elements.append(Spacer(1, 0.3 * inch))  # Add more space between value table and loss-plots.
 
     # Define the styles
-    stylesheet = getSampleStyleSheet()
+    fn29_stylesheet = getSampleStyleSheet()
 
     # Get the keys in the correct order from the DataFrame
-    keys_in_order = sorted_dataframe['model_name'].tolist()
-    local_sorted_local_examples_model_predictions = {key: local_examples_model_predictions[key] for key in keys_in_order if key in local_examples_model_predictions}
+    fn29_keys_in_order = fn29_sorted_dataframe['model_name'].tolist()
+    fn29_sorted_local_examples_model_predictions = {fn29_key: fn29_examples_model_predictions[fn29_key] for fn29_key in fn29_keys_in_order if fn29_key in fn29_examples_model_predictions}
 
-    keys = list(local_sorted_local_examples_model_predictions.keys())
+    fn29_keys = list(fn29_sorted_local_examples_model_predictions.keys())
 
     # Number of keys to print beside each other in a row
-    keys_per_row = 4
+    fn29_keys_per_row = 4
 
     # Initialize an index to keep track of the keys
-    key_index = 0
+    fn29_key_index = 0
 
-    while key_index < len(keys):
+    while fn29_key_index < len(fn29_keys):
         # Create a list to store key paragraphs for this row
-        key_paragraphs = []
+        fn29_key_paragraphs = []
 
         # Create a list to store array paragraphs for this row
-        array_paragraphs = []
+        fn29_array_paragraphs = []
 
         # Iterate through keys for the current row
-        for local_i in range(key_index, min(key_index + keys_per_row, len(keys))):
-            key = keys[local_i]
+        for fn29_i in range(fn29_key_index, min(fn29_key_index + fn29_keys_per_row, len(fn29_keys))):
+            fn29_key = fn29_keys[fn29_i]
 
             # Add a line for the key
-            key_line = Paragraph(f"<b><font size=12>{key}:</font></b><br/><br/>", stylesheet['Normal'])
-            key_paragraphs.append(key_line)
+            fn29_key_line = Paragraph(f"<b><font size=12>{fn29_key}:</font></b><br/><br/>", fn29_stylesheet['Normal'])
+            fn29_key_paragraphs.append(fn29_key_line)
 
             # Add a line for the value
-            array_to_display = local_examples_model_predictions[key]
-            array_paragraph = Paragraph("<br/>".join(array_to_display), stylesheet['Normal'])
-            array_paragraphs.append(array_paragraph)
+            fn29_array_to_display = fn29_examples_model_predictions[fn29_key]
+            fn29_array_paragraph = Paragraph("<br/>".join(fn29_array_to_display), fn29_stylesheet['Normal'])
+            fn29_array_paragraphs.append(fn29_array_paragraph)
 
         # Create a table with key-value pairs for the current row
-        kv_table = Table([key_paragraphs, array_paragraphs])
+        fn29_kv_table = Table([fn29_key_paragraphs, fn29_array_paragraphs])
 
         # Optionally, add some styling to the kv table
-        kv_table.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP')]))
+        fn29_kv_table.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP')]))
 
         # Add the kv table to elements
-        elements.append(kv_table)
+        fn29_elements.append(fn29_kv_table)
 
         # Increment the key index for the next row
-        key_index += keys_per_row
+        fn29_key_index += fn29_keys_per_row
 
         # Add a spacer to separate rows
-        elements.append(Spacer(1, 0.2 * inch))  # Adjust the spacing as needed
+        fn29_elements.append(Spacer(1, 0.2 * inch))  # Adjust the spacing as needed
 
     # Assuming figure_filenames is a list of image file names
     # Process images in pairs
-    for local_i in range(0, len(figure_filenames), 2):
+    for fn29_i in range(0, len(fn29_figure_filenames), 2):
         # Create an empty row
-        row = []
+        fn29_row = []
 
-        for local_j in range(2):
-            index = local_i + local_j
-            if index < len(figure_filenames):
+        for fn29_j in range(2):
+            fn29_index = fn29_i + fn29_j
+            if fn29_index < len(fn29_figure_filenames):
                 # Load and resize image
-                img = Image(figure_filenames[index])
-                img.drawHeight = img.drawHeight * 0.45
-                img.drawWidth = img.drawWidth * 0.45
-                row.append(img)
+                fn29_img = Image(fn29_figure_filenames[fn29_index])
+                fn29_img.drawHeight = fn29_img.drawHeight * 0.45
+                fn29_img.drawWidth = fn29_img.drawWidth * 0.45
+                fn29_row.append(fn29_img)
             else:
                 # Add an empty cell if no image left
-                row.append('')
+                fn29_row.append('')
 
         # Corrected line to handle string elements
-        col_widths = [img.drawWidth if isinstance(img, Image) else 0 for img in row]
+        fn29_col_widths = [fn29_img.drawWidth if isinstance(fn29_img, Image) else 0 for fn29_img in fn29_row]
 
         # Create a table for each row
-        table = Table([row], colWidths=col_widths)
+        fn29_table = Table([fn29_row], colWidths=fn29_col_widths)
 
         # Add the table to elements
-        elements.append(table)
-        elements.append(Spacer(1, 0.5 * inch))  # Space after each row
+        fn29_elements.append(fn29_table)
+        fn29_elements.append(Spacer(1, 0.5 * inch))  # Space after each row
 
     # Build the PDF
-    pdf.build(elements)
+    fn29_pdf.build(fn29_elements)
 
     # Optionally, delete the temporary image files
-    for local_img_filename in figure_filenames:
-        os.remove(local_img_filename)
+    for fn29_img_filename in fn29_figure_filenames:
+        os.remove(fn29_img_filename)
 
 
-def optuna_output_to_pdf(study, sublocal_mean_percent_error, sublocal_timestamp, local_cost_function):
+def optuna_output_to_pdf(fn30_study, fn30_mean_percent_error, fn30_timestamp, fn30_cost_function):
     """
     Description:
         Converts the results of an Optuna optimization study into a detailed PDF report. This function generates a summary
@@ -1569,9 +1577,9 @@ def optuna_output_to_pdf(study, sublocal_mean_percent_error, sublocal_timestamp,
 
     Input:
         fn29_study (Study): The Optuna study object containing the results of the optimization.
-        fn29_sublocal_mean_percent_error (float): The mean percentage error of the best trial in the study.
-        fn29_sublocal_timestamp (str): Timestamp used for naming the PDF file.
-        fn29_local_cost_function (str): The cost function used in the study.
+        fn29_mean_percent_error (float): The mean percentage error of the best trial in the study.
+        fn29_timestamp (str): Timestamp used for naming the PDF file.
+        fn29_cost_function (str): The cost function used in the study.
 
     Output:
         None: The function generates a PDF file as an output and does not return a value.
@@ -1580,120 +1588,120 @@ def optuna_output_to_pdf(study, sublocal_mean_percent_error, sublocal_timestamp,
         fn30_
     """
 
-    file_path = "../output/nn_hyperpara_screener__output/optuna_results/optuna_report__{}.pdf".format(sublocal_timestamp)
-    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    fn30_file_path = "../output/nn_hyperpara_screener__output/optuna_results/optuna_report__{}.pdf".format(fn30_timestamp)
+    os.makedirs(os.path.dirname(fn30_file_path), exist_ok=True)
     subprocess.run(["xdotool", "key", "F5"])                    # This is needed, otherwise you risk a dir which just says its loading the files (which is permanent, it will never load)
 
     # Initialize PDF in A4 portrait orientation
-    c = canvas.Canvas(file_path, pagesize=A4)
-    width, height = A4
+    fn30_c = canvas.Canvas(fn30_file_path, pagesize=A4)
+    fn30_width, fn30_height = A4
 
     # Define margin and position for the header
-    left_margin = 50
-    top_position = height - 50
+    fn30_left_margin = 50
+    fn30_top_position = fn30_height - 50
 
     # Add Header on the first page
-    c.setFont("Helvetica-Bold", 16)
-    c.drawString(left_margin, top_position, f"NN Optuna Optimization Report  {sublocal_timestamp}")
+    fn30_c.setFont("Helvetica-Bold", 16)
+    fn30_c.drawString(fn30_left_margin, fn30_top_position, f"NN Optuna Optimization Report  {fn30_timestamp}")
 
-    c.setFont("Helvetica", 12)
-    c.drawString(left_margin, top_position - 30, f"Number of finished trials: {len(study.trials)}")
+    fn30_c.setFont("Helvetica", 12)
+    fn30_c.drawString(fn30_left_margin, fn30_top_position - 30, f"Number of finished trials: {len(fn30_study.trials)}")
 
-    c.setFont("Helvetica", 12)
-    sublocal_mean_percent_error = round_to_three_custom(sublocal_mean_percent_error)
-    c.drawString(left_margin, top_position - 60, f"Mean % error on the dev-set for the best hyperparameters found by the Optuna study: {sublocal_mean_percent_error}")
+    fn30_c.setFont("Helvetica", 12)
+    fn30_mean_percent_error = round_to_three_custom(fn30_mean_percent_error)
+    fn30_c.drawString(fn30_left_margin, fn30_top_position - 60, f"Mean % error on the dev-set for the best hyperparameters found by the Optuna study: {fn30_mean_percent_error}")
 
     # Round best trial parameters if they are floats
-    rounded_params = {k: round_to_three_custom(v) for k, v in study.best_trial.params.items()}
+    fn30_rounded_params = {fn30_k: round_to_three_custom(fn30_v) for fn30_k, fn30_v in fn30_study.best_trial.params.items()}
 
     # Set font for the header of the best hyperparameters section
-    c.setFont("Helvetica-Bold", 12)
-    header_position = top_position - 100  # Adjust position for the header
+    fn30_c.setFont("Helvetica-Bold", 12)
+    fn30_header_position = fn30_top_position - 100  # Adjust position for the header
 
     # Add a line for the header of the best hyperparameters
-    c.drawString(left_margin, header_position, "Best hyperparameters found by the Optuna study:")
+    fn30_c.drawString(fn30_left_margin, fn30_header_position, "Best hyperparameters found by the Optuna study:")
 
     # Write each parameter on a separate line
-    c.setFont("Helvetica", 12)
-    line_height = 20
-    param_start_position = top_position - 120  # Starting position for parameters
+    fn30_c.setFont("Helvetica", 12)
+    fn30_line_height = 20
+    fn30_param_start_position = fn30_top_position - 120  # Starting position for parameters
 
-    for local_i, (k, v) in enumerate(rounded_params.items()):
-        c.drawString(left_margin, param_start_position - (local_i * line_height), f"{k} : {v}")
+    for fn30_i, (fn30_k, fn30_v) in enumerate(fn30_rounded_params.items()):
+        fn30_c.drawString(fn30_left_margin, fn30_param_start_position - (fn30_i * fn30_line_height), f"{fn30_k} : {fn30_v}")
 
-    param_lines = len(rounded_params)
+    fn30_param_lines = len(fn30_rounded_params)
 
     # Calculate position for 'Copy and paste:' line
-    copy_paste_position = param_start_position - (param_lines * line_height) - line_height
+    fn30_copy_paste_position = fn30_param_start_position - (fn30_param_lines * fn30_line_height) - fn30_line_height
 
     # Add a line for 'Copy and paste:' in bold
-    c.setFont("Helvetica-Bold", 12)  # Set font to bold for 'Copy and paste:'
-    c.drawString(left_margin, copy_paste_position, "Copy and paste:")
+    fn30_c.setFont("Helvetica-Bold", 12)  # Set font to bold for 'Copy and paste:'
+    fn30_c.drawString(fn30_left_margin, fn30_copy_paste_position, "Copy and paste:")
 
     # Convert to list of strings (only values)
-    param_values = [str(v) for v in rounded_params.values()]
+    fn30_param_values = [str(v) for v in fn30_rounded_params.values()]
 
     # Remove the first element from the list
-    local_num_hidden_layers = int(param_values[0])
-    param_values = param_values[1:]  # Keeps all elements of the list except the first one
-    param_values.insert(0, 'Optuna_model')
-    param_values.append(local_cost_function)
+    fn30_num_hidden_layers = int(fn30_param_values[0])
+    fn30_param_values = fn30_param_values[1:]  # Keeps all elements of the list except the first one
+    fn30_param_values.insert(0, 'Optuna_model')
+    fn30_param_values.append(fn30_cost_function)
 
-    local_iterations = 8 + local_num_hidden_layers     # The Optimizer is at that pos, and " also need to be added there, because the params of the optimizer should be in one field in the .csv file
+    fn30_iterations = 8 + fn30_num_hidden_layers     # The Optimizer is at that pos, and " also need to be added there, because the params of the optimizer should be in one field in the .csv file
 
-    for local_i in range(local_iterations):
-        if local_i == 1:
-            param_values[local_i] = '"' + param_values[local_i]         # Add an " before the first neuron number.
-        elif local_i == local_num_hidden_layers + 1:
-            param_values[local_i] = param_values[local_i] + '"'         # Add an " after the last neuron number
-        elif local_i == local_iterations - 1:
-            param_values[local_i] = '"' + param_values[local_i]
+    for fn30_i in range(fn30_iterations):
+        if fn30_i == 1:
+            fn30_param_values[fn30_i] = '"' + fn30_param_values[fn30_i]         # Add an " before the first neuron number.
+        elif fn30_i == fn30_num_hidden_layers + 1:
+            fn30_param_values[fn30_i] = fn30_param_values[fn30_i] + '"'         # Add an " after the last neuron number
+        elif fn30_i == fn30_iterations - 1:
+            fn30_param_values[fn30_i] = '"' + fn30_param_values[fn30_i]
 
-    param_values[-6] = param_values[-6] + '"'       # Add an " after the last parameter of the optimizer (or after the optimizer itself).
+    fn30_param_values[-6] = fn30_param_values[-6] + '"'       # Add an " after the last parameter of the optimizer (or after the optimizer itself).
 
     # Join the strings without spaces after commas
-    values_str = ','.join(param_values)
+    fn30_values_str = ','.join(fn30_param_values)
 
     # Set font and draw the string
-    c.setFont("Helvetica", 6)  # Set back to regular font for the values
-    c.drawString(left_margin, copy_paste_position - line_height, values_str)
+    fn30_c.setFont("Helvetica", 6)  # Set back to regular font for the values
+    fn30_c.drawString(fn30_left_margin, fn30_copy_paste_position - fn30_line_height, fn30_values_str)
 
     # Start figures from the second page
-    c.showPage()
+    fn30_c.showPage()
 
     # List of plot filenames
-    plot_files = [
+    fn30_plot_files = [
         "optimization_history.png",
         "param_importances.png",
         "edf.png"
     ]
 
     # Image dimensions
-    img_width = 500
-    img_height = 250  # Adjusted height to fit three images per page
+    fn30_img_width = 500
+    fn30_img_height = 250  # Adjusted height to fit three images per page
 
     # Add plots to PDF, three on each page
-    for local_i, plot_file in enumerate(plot_files):
-        if local_i % 3 == 0 and local_i > 0:  # Create a new page after every three plots
-            c.showPage()
+    for fn30_i, fn30_plot_file in enumerate(fn30_plot_files):
+        if fn30_i % 3 == 0 and fn30_i > 0:  # Create a new page after every three plots
+            fn30_c.showPage()
 
-        full_path = os.path.join(os.getcwd(), plot_file)
-        if os.path.exists(full_path):
+        fn30_full_path = os.path.join(os.getcwd(), fn30_plot_file)
+        if os.path.exists(fn30_full_path):
             # Calculate image Y position (top, middle, bottom image)
-            img_y_position = top_position - 220 - (local_i % 3) * (img_height + 5)
+            fn30_img_y_position = fn30_top_position - 220 - (fn30_i % 3) * (fn30_img_height + 5)
 
-            c.drawImage(full_path, left_margin, img_y_position, width=img_width, height=img_height, preserveAspectRatio=True)
+            fn30_c.drawImage(fn30_full_path, fn30_left_margin, fn30_img_y_position, width=fn30_img_width, height=fn30_img_height, preserveAspectRatio=True)
 
-            os.remove(full_path)    # Delete plot file
+            os.remove(fn30_full_path)    # Delete plot file
         else:
-            print(f"Error: Plot file not found: {full_path}")
+            print(f"Error: Plot file not found: {fn30_full_path}")
             sys.exit()
 
     # Save the PDF
-    c.save()
+    fn30_c.save()
 
 
-def parse_optuna_hyperparameter_ranges(local_csv_file):
+def parse_optuna_hyperparameter_ranges(fn31_csv_file):
     """
     Description:
         Parses a CSV file to extract hyperparameter ranges for Optuna optimization.
@@ -1708,42 +1716,42 @@ def parse_optuna_hyperparameter_ranges(local_csv_file):
         - Special handling for 'batch_size' to interpret it as a single value or a list of values.
 
     Input:
-        local_csv_file: A string representing the path to the CSV file containing hyperparameter configurations.
+        fn31_csv_file: A string representing the path to the CSV file containing hyperparameter configurations.
 
     Output:
-        local_hyperparameters: A dictionary where keys are hyperparameter names and values are the respective
+        fn31_hyperparameters: A dictionary where keys are hyperparameter names and values are the respective
                            hyperparameter configurations (ranges, lists of options, or single values).
 
     Function-code:
         fn31_
     """
 
-    local_df = pd.read_csv(local_csv_file)
-    local_hyperparameters = {}
-    for local_column in local_df.columns:
-        local_values = str(local_df[local_column].values[0])
+    fn31_df = pd.read_csv(fn31_csv_file)
+    fn31_hyperparameters = {}
+    for fn31_column in fn31_df.columns:
+        fn31_values = str(fn31_df[fn31_column].values[0])
 
         # Special handling for 'batch_size'
-        if local_column == 'batch_size':
-            if ',' in local_values:  # It's a list of batch sizes
-                local_hyperparameters[local_column] = [int(val.strip()) for val in local_values.split(',')]
+        if fn31_column == 'batch_size':
+            if ',' in fn31_values:  # It's a list of batch sizes
+                fn31_hyperparameters[fn31_column] = [int(val.strip()) for val in fn31_values.split(',')]
             else:  # It's a single batch size
-                local_hyperparameters[local_column] = int(local_values)
-        elif local_values[0].isalpha():  # It's a list of categorical options
-            if ',' in local_values:
-                local_hyperparameters[local_column] = local_values.split(',')
+                fn31_hyperparameters[fn31_column] = int(fn31_values)
+        elif fn31_values[0].isalpha():  # It's a list of categorical options
+            if ',' in fn31_values:
+                fn31_hyperparameters[fn31_column] = fn31_values.split(',')
             else:
-                local_hyperparameters[local_column] = local_values
-        elif local_values[0].isdigit():  # It's a numerical range
-            if ',' in local_values:
-                local_min_val, local_max_val = map(float, local_values.split(','))
-                local_hyperparameters[local_column] = (local_min_val, local_max_val)
+                fn31_hyperparameters[fn31_column] = fn31_values
+        elif fn31_values[0].isdigit():  # It's a numerical range
+            if ',' in fn31_values:
+                fn31_min_val, fn31_max_val = map(float, fn31_values.split(','))
+                fn31_hyperparameters[fn31_column] = (fn31_min_val, fn31_max_val)
             else:
-                local_hyperparameters[local_column] = int(local_values)
-    return local_hyperparameters
+                fn31_hyperparameters[fn31_column] = int(fn31_values)
+    return fn31_hyperparameters
 
 
-def run_optuna_study(local_train_dev_dataframes, local_timestamp, local_n_trials, local_input_size):
+def run_optuna_study(fn32_train_dev_dataframes, fn32_timestamp, fn32_n_trials, fn32_input_size):
     """
     Description:
         Conducts an Optuna hyperparameter optimization study for a neural network model. This function sets up
@@ -1751,10 +1759,10 @@ def run_optuna_study(local_train_dev_dataframes, local_timestamp, local_n_trials
         It also generates and saves visualization plots for the study and compiles a detailed PDF report of the results.
 
     Input:
-        fn30_local_train_dev_dataframes (tuple of DataFrames): Tuple containing training and development datasets.
-        fn30_local_timestamp (str): A timestamp string used for naming output files.
-        fn30_local_n_trials (int): The number of trials to run in the Optuna study.
-        fn30_local_input_size (int): The size of the input layer for the neural network model.
+        fn32_train_dev_dataframes (tuple of DataFrames): Tuple containing training and development datasets.
+        fn32_timestamp (str): A timestamp string used for naming output files.
+        fn32_n_trials (int): The number of trials to run in the Optuna study.
+        fn32_input_size (int): The size of the input layer for the neural network model.
 
     Output:
         dict: The best hyperparameters found by the Optuna study.
@@ -1763,7 +1771,7 @@ def run_optuna_study(local_train_dev_dataframes, local_timestamp, local_n_trials
         fn32_
     """
 
-    def objective(trial, sublocal_train_dev_dataframes, sublocal_input_size):
+    def objective(fn33_trial, fn33_train_dev_dataframes, fn33_input_size):
         """
         Description:
             The objective function for the Optuna study, defining how the model should be trained and evaluated.
@@ -1771,9 +1779,9 @@ def run_optuna_study(local_train_dev_dataframes, local_timestamp, local_n_trials
             development set. The function is called by the Optuna study for each trial.
 
         Input:
-            fn30_trial (Trial): The current Optuna trial instance.
-            fn30_sublocal_train_dev_dataframes (tuple of DataFrames): Tuple containing training and development datasets.
-            fn30_sublocal_input_size (int): The size of the input layer for the neural network model.
+            fn33_trial (Trial): The current Optuna trial instance.
+            fn33_train_dev_dataframes (tuple of DataFrames): Tuple containing training and development datasets.
+            fn33_input_size (int): The size of the input layer for the neural network model.
 
         Output:
             float: The loss of the model on the development set for the current set of hyperparameters.
@@ -1782,89 +1790,92 @@ def run_optuna_study(local_train_dev_dataframes, local_timestamp, local_n_trials
             fn33_
         """
 
-        sublocal_hyperparameter_ranges = parse_optuna_hyperparameter_ranges('../input/nn_hyperpara_screener_optuna_ranges.csv')
+        fn33_hyperparameter_ranges = parse_optuna_hyperparameter_ranges('../input/nn_hyperpara_screener_optuna_ranges.csv')
 
         # Hyperparameters to be tuned by Optuna
         # Hyperparameter range for the number of layers
-        num_layers = trial.suggest_int('num_hidden_layers', *sublocal_hyperparameter_ranges['num_hidden_layers'])
+        fn33_num_layers = fn33_trial.suggest_int('num_hidden_layers', *fn33_hyperparameter_ranges['num_hidden_layers'])
 
         # Dynamically creating hyperparameters for each layer's neuron count
-        local_nr_neurons = []
-        local_num_neurons = 1
-        for local_i in range(1, num_layers + 1):         # So that the first hidden layer has the number 1 (nr. 0 could be confused with input layer)
-            local_num_neurons = trial.suggest_int(f'neurons_hidden_layer_{local_i}', *sublocal_hyperparameter_ranges['nr_neurons_hidden_layers'])
-        local_nr_neurons.append(local_num_neurons)
-        local_nr_output_neurons = trial.suggest_int('num_neurons_output_layer', *sublocal_hyperparameter_ranges['num_neurons_output_layer'])
+        fn33_nr_neurons = []
+        fn33_num_neurons = 1
+        for fn33_i in range(1, fn33_num_layers + 1):         # So that the first hidden layer has the number 1 (nr. 0 could be confused with input layer)
+            fn33_num_neurons = fn33_trial.suggest_int(f'neurons_hidden_layer_{fn33_i}', *fn33_hyperparameter_ranges['nr_neurons_hidden_layers'])
+        fn33_nr_neurons.append(fn33_num_neurons)
+        fn33_nr_output_neurons = fn33_trial.suggest_int('num_neurons_output_layer', *fn33_hyperparameter_ranges['num_neurons_output_layer'])
 
-        local_acti_fun_type = trial.suggest_categorical('acti_fun', sublocal_hyperparameter_ranges['acti_fun_hidden_layers'])
-        local_acti_fun_out_type = trial.suggest_categorical('acti_fun_out', sublocal_hyperparameter_ranges['acti_fun_output_layer'])
-        local_nr_epochs = trial.suggest_int('nr_epochs', *sublocal_hyperparameter_ranges['nr_epochs'])
-        local_batch_size = trial.suggest_categorical('batch_size', sublocal_hyperparameter_ranges['batch_size'])
-        local_noise = trial.suggest_float('noise', *sublocal_hyperparameter_ranges['gaussian_noise'])
+        fn33_acti_fun_type = fn33_trial.suggest_categorical('acti_fun', fn33_hyperparameter_ranges['acti_fun_hidden_layers'])
+        fn33_acti_fun_out_type = fn33_trial.suggest_categorical('acti_fun_out', fn33_hyperparameter_ranges['acti_fun_output_layer'])
+        fn33_nr_epochs = fn33_trial.suggest_int('nr_epochs', *fn33_hyperparameter_ranges['nr_epochs'])
+        fn33_batch_size = fn33_trial.suggest_categorical('batch_size', fn33_hyperparameter_ranges['batch_size'])
+        fn33_noise = fn33_trial.suggest_float('noise', *fn33_hyperparameter_ranges['gaussian_noise'])
 
         # local_optimizer_column_list = hyperparameter_ranges['optimizer'].split(',')
-        local_optimizer_type = trial.suggest_categorical('optimizer', sublocal_hyperparameter_ranges['optimizer'])
+        fn33_optimizer_type = fn33_trial.suggest_categorical('optimizer', fn33_hyperparameter_ranges['optimizer'])
 
         # Conditional hyperparameters for the optimizer
-        if local_optimizer_type == 'Adam':
-            local_beta1 = trial.suggest_float('beta1', 0.5, 0.9)
-            local_beta2 = trial.suggest_float('beta2', 0.999, 0.9999)
-            local_optim_add_params = [local_beta1, local_beta2]
-        elif local_optimizer_type == 'SGD':
-            local_momentum = trial.suggest_float('momentum', 0.5, 0.9)
+        fn33_optim_add_params = None
+        fn33_momentum = None
+
+        if fn33_optimizer_type == 'Adam':
+            fn33_beta1 = fn33_trial.suggest_float('beta1', 0.5, 0.9)
+            fn33_beta2 = fn33_trial.suggest_float('beta2', 0.999, 0.9999)
+            fn33_optim_add_params = [fn33_beta1, fn33_beta2]
+        elif fn33_optimizer_type == 'SGD':
+            fn33_momentum = fn33_trial.suggest_float('momentum', 0.5, 0.9)
         else:
-            print(f"Error: Optimizer name {local_optimizer_type} not valid!")
+            print(f"Error: Optimizer name {fn33_optimizer_type} not valid!")
             sys.exit()
 
-        local_learning_rate = trial.suggest_float('alpha', *sublocal_hyperparameter_ranges['alpha'], log=True)
-        local_lamda = trial.suggest_float('lamda', *sublocal_hyperparameter_ranges['lamda'], log=True)
-        local_dropout = trial.suggest_float('dropout', *sublocal_hyperparameter_ranges['dropout'])
-        sublocal_cost_function = sublocal_hyperparameter_ranges['cost_function']
-        local_psi = trial.suggest_float('psi', *sublocal_hyperparameter_ranges['psi'])
+        fn33_learning_rate = fn33_trial.suggest_float('alpha', *fn33_hyperparameter_ranges['alpha'], log=True)
+        fn33_lamda = fn33_trial.suggest_float('lamda', *fn33_hyperparameter_ranges['lamda'], log=True)
+        fn33_dropout = fn33_trial.suggest_float('dropout', *fn33_hyperparameter_ranges['dropout'])
+        fn33_cost_function = fn33_hyperparameter_ranges['cost_function']
+        fn33_psi = fn33_trial.suggest_float('psi', *fn33_hyperparameter_ranges['psi'])
 
-        local_hyperparams = {
-            'nr_neurons_hidden_layers': local_nr_neurons,
-            'nr_neurons_output_layer': local_nr_output_neurons,
-            'activation_function_type': local_acti_fun_type,
-            'acti_fun_out': local_acti_fun_out_type,
-            'batch_size': local_batch_size,
-            'optimizer_type': local_optimizer_type,
-            'optim_add_params': local_optim_add_params if local_optimizer_type == 'Adam' else [local_momentum],
-            'learning_rate': local_learning_rate,
-            'lamda': local_lamda,
-            'dropout': local_dropout,
-            'psi_value': local_psi,
-            'cost_function': sublocal_cost_function,
+        fn33_hyperparams = {
+            'nr_neurons_hidden_layers': fn33_nr_neurons,
+            'nr_neurons_output_layer': fn33_nr_output_neurons,
+            'activation_function_type': fn33_acti_fun_type,
+            'acti_fun_out': fn33_acti_fun_out_type,
+            'batch_size': fn33_batch_size,
+            'optimizer_type': fn33_optimizer_type,
+            'optim_add_params': fn33_optim_add_params if fn33_optimizer_type == 'Adam' else [fn33_momentum],
+            'learning_rate': fn33_learning_rate,
+            'lamda': fn33_lamda,
+            'dropout': fn33_dropout,
+            'psi_value': fn33_psi,
+            'cost_function': fn33_cost_function,
         }
 
-        local_model, local_optimizer, local_criterion, local_train_loader, local_dev_loader, local_x_dev_tensor, local_y_dev_tensor = prepare_model_training(local_hyperparams, sublocal_train_dev_dataframes, sublocal_input_size)
+        fn33_model, fn33_optimizer, fn33_criterion, fn33_train_loader, fn33_dev_loader, fn33_x_dev_tensor, fn33_y_dev_tensor = prepare_model_training(fn33_hyperparams, fn33_train_dev_dataframes, fn33_input_size)
 
-        local_loss_dev = train_and_optionally_plot(local_model, local_train_loader, local_nr_epochs, local_optimizer, local_criterion, local_x_dev_tensor, local_y_dev_tensor, local_noise)
+        fn33_loss_dev = train_and_optionally_plot(fn33_model, fn33_train_loader, fn33_nr_epochs, fn33_optimizer, fn33_criterion, fn33_x_dev_tensor, fn33_y_dev_tensor, fn33_noise)
 
-        return local_loss_dev
+        return fn33_loss_dev
 
-    global study_mean_percentage_error
+    global global_study_mean_percentage_error
 
-    study = optuna.create_study(direction='minimize')
-    study.optimize(lambda trial: objective(trial, local_train_dev_dataframes, local_input_size), local_n_trials)
+    fn32_study = optuna.create_study(direction='minimize')
+    fn32_study.optimize(lambda trial: objective(trial, fn32_train_dev_dataframes, fn32_input_size), fn32_n_trials)
 
     #################################################################################
     # Generate a range of plots that Optuna has to offer
-    local_fig = optuna.visualization.plot_optimization_history(study)
-    local_fig.write_image("optimization_history.png")
+    fn32_fig = optuna.visualization.plot_optimization_history(fn32_study)
+    fn32_fig.write_image("optimization_history.png")
 
-    local_fig = optuna.visualization.plot_param_importances(study)
-    local_fig.write_image("param_importances.png")
+    fn32_fig = optuna.visualization.plot_param_importances(fn32_study)
+    fn32_fig.write_image("param_importances.png")
 
-    local_fig = optuna.visualization.plot_edf(study)
-    local_fig.write_image("edf.png")
+    fn32_fig = optuna.visualization.plot_edf(fn32_study)
+    fn32_fig.write_image("edf.png")
     #################################################################################
 
-    local_hyperparameter_ranges = parse_optuna_hyperparameter_ranges('../input/nn_hyperpara_screener_optuna_ranges.csv')
-    local_cost_function = local_hyperparameter_ranges['cost_function']
-    optuna_output_to_pdf(study, study_mean_percentage_error, local_timestamp, local_cost_function)       # Generate a report for the Optuna study.
+    fn32_hyperparameter_ranges = parse_optuna_hyperparameter_ranges('../input/nn_hyperpara_screener_optuna_ranges.csv')
+    fn32_cost_function = fn32_hyperparameter_ranges['cost_function']
+    optuna_output_to_pdf(fn32_study, global_study_mean_percentage_error, fn32_timestamp, fn32_cost_function)       # Generate a report for the Optuna study.
 
-    return study.best_trial.params
+    return fn32_study.best_trial.params
 
 
 # End of the section where all the functions and classes are stored.
@@ -1917,7 +1928,7 @@ input_size = x_train.shape[1]  # Automatically set input_size based on the numbe
 amount_of_rows = x_train.shape[0]
 
 if run_optuna:                          # Instead of manually tuning, the optimizer Optuna does it automatically.
-    study_mean_percentage_error = None
+    global_study_mean_percentage_error = None
     best_trial_parameter = run_optuna_study(train_dev_dataframes, timestamp, nr_trials, input_size)
     os.system('play -nq -t alsa synth 1 sine 600')  # Give a notification sound when done.
     sys.exit()
