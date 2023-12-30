@@ -511,6 +511,7 @@ def check_dataframe_columns(fn9_df):
         'dropout': lambda fn9_x: pd.isna(fn9_x) or (isinstance(fn9_x, (int, float)) and 0 <= fn9_x < 1),
         'psi': lambda fn9_x: pd.isna(fn9_x) or isinstance(fn9_x, (int, float)),
         'cost_fun': lambda fn9_x: pd.isna(fn9_x) or isinstance(fn9_x, str),
+        'seed': lambda fn9_x: pd.isna(fn9_x) or isinstance(fn9_x, (int, float)),
     }
 
     check_config_columns(fn9_df, fn9_required_columns_nn)
@@ -617,9 +618,9 @@ def assign_hyperparameters_from_config(fn12_pandas_df, fn12_row_nr, fn12_amount_
 
     fn12_variable_names = ['model_name', 'nr_neurons_str', 'activation_function_type', 'acti_fun_out', 'nr_epochs',
                            'batch_size', 'noise_stddev', 'optimizer_type', 'learning_rate', 'lamda', 'dropout',
-                           'psi_value', 'cost_function']
+                           'psi_value', 'cost_function','random_seed']
     fn12_column_names = ['model_name', 'neurons', 'acti_fun', 'acti_fun_out', 'epochs', 'batch_size',
-                         'noise', 'optimizer', 'alpha', 'lamda', 'dropout', 'psi', 'cost_fun']
+                         'noise', 'optimizer', 'alpha', 'lamda', 'dropout', 'psi', 'cost_fun','seed']
 
     fn12_hyperparams = {}
 
@@ -1095,6 +1096,10 @@ def prepare_model_training(fn25_hyperparams, fn25_train_dev_dataframes, fn25_inp
     fn25_dropout = fn25_hyperparams['dropout']
     fn25_psi_value = fn25_hyperparams['psi_value']
     fn25_cost_function = fn25_hyperparams['cost_function']
+
+    fn25_random_seed = fn25_hyperparams['random_seed']
+    torch.manual_seed(fn25_random_seed)
+    np.random.seed(fn25_random_seed)
 
     fn25_x_train = fn25_train_dev_dataframes[0]
     fn25_y_train = fn25_train_dev_dataframes[1]
@@ -1912,6 +1917,7 @@ def run_optuna_study(fn32_train_dev_dataframes, fn32_timestamp, fn32_n_trials, f
         fn33_dropout = fn33_trial.suggest_float('dropout', *fn33_hyperparameter_ranges['dropout'])
         fn33_cost_function = fn33_hyperparameter_ranges['cost_function']
         fn33_psi = fn33_trial.suggest_float('psi', *fn33_hyperparameter_ranges['psi'])
+        fn33_random_seed = fn33_hyperparameter_ranges.get('random_seed', 999)
 
         fn33_hyperparams = {
             'nr_neurons_hidden_layers': fn33_nr_neurons,
@@ -1926,6 +1932,7 @@ def run_optuna_study(fn32_train_dev_dataframes, fn32_timestamp, fn32_n_trials, f
             'dropout': fn33_dropout,
             'psi_value': fn33_psi,
             'cost_function': fn33_cost_function,
+            'random_seed': fn33_random_seed,
         }
 
         fn33_model, fn33_optimizer, fn33_criterion, fn33_train_loader, fn33_dev_loader, fn33_x_dev_tensor, fn33_y_dev_tensor = prepare_model_training(fn33_hyperparams, fn33_train_dev_dataframes, fn33_input_size)
