@@ -32,10 +32,57 @@ import torch.optim as optim
 # Section, where all the functions and classes are stored. All the function calls and class instantiations are below this section.
 
 
+# def round_to_three_custom(fn1_num):
+#     """
+#     Description:
+#         Modify a floating-point number to have at most three non-zero digits after the decimal point.
+#
+#     Input:
+#         fn1_num (float): The number to be modified.
+#
+#     Output:
+#         float: The modified number with at most three non-zero digits after the decimal point.
+#
+#     Function-code:
+#         fn1_
+#     """
+#
+#     if isinstance(fn1_num, (float, np.float64, np.float32)):            # To avoid errors when this is applied to a mixed list.
+#         fn1_num_str = str(fn1_num)
+#         if '.' in fn1_num_str:
+#             fn1_whole, fn1_decimal = fn1_num_str.split('.')             # Splitting the number into whole and decimal parts
+#             fn1_non_zero_count = 0
+#             fn1_found_non_zero_digit_before_dot = False
+#
+#             for fn1_local_i, fn1_digit in enumerate(fn1_whole):         # Loop over the decimal digits (starting from the . on leftwards)
+#                 if fn1_digit != '0':
+#                     fn1_found_non_zero_digit_before_dot = True
+#
+#             for fn1_local_i, fn1_digit in enumerate(fn1_decimal):
+#                 if fn1_digit != '0':
+#                     fn1_non_zero_count += 1
+#
+#                 if fn1_non_zero_count == 3:
+#                     # Keeping up to the third non-zero digit and truncating the rest
+#                     fn1_new_decimal = fn1_decimal[:fn1_local_i + 1]
+#                     return float(fn1_whole + '.' + fn1_new_decimal)
+#
+#                 if fn1_local_i == 2 and fn1_found_non_zero_digit_before_dot:
+#                     fn1_new_decimal = fn1_decimal[:fn1_local_i]
+#                     return float(fn1_whole + '.' + fn1_new_decimal)
+#
+#             return float(fn1_num_str)       # Return the original number if less than 3 non-zero digits
+#         else:
+#             return int(fn1_num_str)         # Return the original number if no decimal part
+#     else:
+#         return fn1_num
+
+
 def round_to_three_custom(fn1_num):
     """
     Description:
-        Modify a floating-point number to have at most three non-zero digits after the decimal point.
+        Modify a floating-point number to have at most three non-zero digits after the decimal point,
+        including handling numbers in scientific notation.
 
     Input:
         fn1_num (float): The number to be modified.
@@ -47,33 +94,38 @@ def round_to_three_custom(fn1_num):
         fn1_
     """
 
-    if isinstance(fn1_num, (float, np.float64, np.float32)):            # To avoid errors when this is applied to a mixed list.
-        fn1_num_str = str(fn1_num)
-        if '.' in fn1_num_str:
-            fn1_whole, fn1_decimal = fn1_num_str.split('.')             # Splitting the number into whole and decimal parts
-            fn1_non_zero_count = 0
-            fn1_found_non_zero_digit_before_dot = False
-
-            for fn1_local_i, fn1_digit in enumerate(fn1_whole):         # Loop over the decimal digits (starting from the . on leftwards)
-                if fn1_digit != '0':
-                    fn1_found_non_zero_digit_before_dot = True
-
-            for fn1_local_i, fn1_digit in enumerate(fn1_decimal):
-                if fn1_digit != '0':
-                    fn1_non_zero_count += 1
-
-                if fn1_non_zero_count == 3:
-                    # Keeping up to the third non-zero digit and truncating the rest
-                    fn1_new_decimal = fn1_decimal[:fn1_local_i + 1]
-                    return float(fn1_whole + '.' + fn1_new_decimal)
-
-                if fn1_local_i == 2 and fn1_found_non_zero_digit_before_dot:
-                    fn1_new_decimal = fn1_decimal[:fn1_local_i]
-                    return float(fn1_whole + '.' + fn1_new_decimal)
-
-            return float(fn1_num_str)       # Return the original number if less than 3 non-zero digits
+    if isinstance(fn1_num, (float, np.float64, np.float32)):
+        # Check if the number is in scientific notation
+        if 'e' in str(fn1_num):
+            fn1_num = format(fn1_num, '.3e')  # Convert to scientific notation with 3 decimal places
+            return fn1_num
         else:
-            return int(fn1_num_str)         # Return the original number if no decimal part
+            fn1_num_str = str(fn1_num)
+            if '.' in fn1_num_str:
+                fn1_whole, fn1_decimal = fn1_num_str.split('.')  # Splitting the number into whole and decimal parts
+                fn1_non_zero_count = 0
+                fn1_found_non_zero_digit_before_dot = False
+
+                for fn1_digit in fn1_whole:  # Loop over the whole number part
+                    if fn1_digit != '0':
+                        fn1_found_non_zero_digit_before_dot = True
+
+                for fn1_local_i, fn1_digit in enumerate(fn1_decimal):
+                    if fn1_digit != '0':
+                        fn1_non_zero_count += 1
+
+                    if fn1_non_zero_count == 3:
+                        # Keeping up to the third non-zero digit and truncating the rest
+                        fn1_new_decimal = fn1_decimal[:fn1_local_i + 1]
+                        return float(fn1_whole + '.' + fn1_new_decimal)
+
+                    if fn1_local_i == 2 and fn1_found_non_zero_digit_before_dot:
+                        fn1_new_decimal = fn1_decimal[:fn1_local_i + 1]
+                        return float(fn1_whole + '.' + fn1_new_decimal)
+
+                return float(fn1_num_str)  # Return the original number if less than 3 non-zero digits
+            else:
+                return int(fn1_num_str)  # Return the original number if no decimal part
     else:
         return fn1_num
 
@@ -1229,16 +1281,26 @@ def train_and_optionally_plot(fn26_model_to_train, fn26_training_loader, fn26_ep
             fn26_predictions = fn26_model_to_train(fn26_x_dev_data).squeeze()  # Forward pass on dev set
             fn26_loss_dev = fn26_loss_criterion(fn26_predictions, fn26_y_dev_data)
 
+            # #################
+            # Convert tensors to numpy arrays for DataFrame
+            predictions_numpy = fn26_predictions.cpu().numpy()
+            y_dev_numpy = fn26_y_dev_data.cpu().numpy()
+
+            # Create a DataFrame
+            results_df = pd.DataFrame({'Predictions': predictions_numpy, 'ActualValues': y_dev_numpy})
+
+            # Generate a unique filename using the current timestamp
+            fn26_timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            fn26_filename = f"predictions_vs_actuals_{fn26_timestamp}.csv"
+
+            # Save the DataFrame to a CSV file
+            results_df.to_csv(os.path.join(os.getcwd(), fn26_filename), index=False)
+            #
+            # #############
+
             # Calculate percentage error
-            fn26_percentage_errors = torch.abs((fn26_predictions - fn26_y_dev_data) / fn26_y_dev_data) * 100
-
-            # Handle cases where the actual value is 0 to avoid division by zero
-            fn26_percentage_errors[fn26_y_dev_data == 0] = torch.abs(fn26_predictions - fn26_y_dev_data)[fn26_y_dev_data == 0] * 100
-
-            # Calculate mean percentage error
-            global global_study_mean_percentage_error  # Export by assigning to a global variable (because the return goes to the optuna module and is not easily accessible)
-            global_study_mean_percentage_error = torch.mean(fn26_percentage_errors).item()  # Convert to Python scalar
-            global_study_mean_percentage_error = round(global_study_mean_percentage_error, 2)
+            global global_study_mean_percentage_error
+            global_study_mean_percentage_error = calculate_mean_percent_error(fn26_predictions, fn26_y_dev_data)
 
             return fn26_loss_dev
 
@@ -1269,12 +1331,28 @@ def calculate_mean_percent_error(fn27_predictions, fn27_y_dev_tensor):
 
     # Calculate the mean of these percent errors
     fn27_mean_percent_error = round(torch.mean(fn27_percent_error).item(), 2)
-    # print("Percent Errors:", fn27_percent_error)
+
+    # #################
+    # # Convert tensors to numpy arrays for DataFrame
+    # predictions_numpy = fn27_predictions.cpu().numpy()
+    # y_dev_numpy = fn27_y_dev_tensor.cpu().numpy()
+    #
+    # # Create a DataFrame
+    # results_df = pd.DataFrame({'Predictions': predictions_numpy, 'ActualValues': y_dev_numpy})
+    #
+    # # Generate a unique filename using the current timestamp
+    # timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    # filename = f"predictions_vs_actuals_{timestamp}.csv"
+    #
+    # # Save the DataFrame to a CSV file
+    # results_df.to_csv(os.path.join(os.getcwd(), filename), index=False)
+    #
+    # #############
 
     return fn27_mean_percent_error
 
 
-def evaluate_model(fn28_model_eval, fn28_x_dev_norm, fn28_y_dev_data, fn28_model_index, fn28_config_df):
+def evaluate_model(fn28_model, fn28_x_dev_norm, fn28_y_dev_data, fn28_model_index, fn28_config_df):
     """
     Description:
         Evaluates the trained model on the development set, calculates the mean percent error, and generates comparisons between predictions and actual labels for the first ten instances. This provides insights into the model's prediction accuracy and a sample of individual predictions.
@@ -1298,20 +1376,23 @@ def evaluate_model(fn28_model_eval, fn28_x_dev_norm, fn28_y_dev_data, fn28_model
         fn28_
     """
 
+    fn28_config_df = fn28_config_df.copy()      # Create a copy of the df, because otherwise, it is a reference and is modified in place.
+
     # Convert NumPy arrays to PyTorch tensors
     fn28_x_dev_tensor = torch.tensor(fn28_x_dev_norm, dtype=torch.float32)
     fn28_y_dev_tensor = torch.tensor(fn28_y_dev_data, dtype=torch.float32)
 
     # Evaluate the model
     with torch.no_grad():
-        fn28_model_eval.eval()
-        fn28_predictions = fn28_model_eval(fn28_x_dev_tensor).squeeze()
+        fn28_model.eval()
+        fn28_predictions = fn28_model(fn28_x_dev_tensor).squeeze()
 
         # Calculate % error (for nice and intuitive reporting)
         fn28_mean_percent_error = calculate_mean_percent_error(fn28_predictions, fn28_y_dev_tensor)
         if '%err' not in fn28_config_df.columns:
             fn28_config_df['%err'] = None
         fn28_config_df.at[fn28_model_index, '%err'] = fn28_mean_percent_error
+        print(f"Mean % error: {fn28_mean_percent_error} %")
 
     fn28_comparisons = []
 
@@ -1323,7 +1404,7 @@ def evaluate_model(fn28_model_eval, fn28_x_dev_norm, fn28_y_dev_data, fn28_model
         fn28_comparison = f"Prediction: {fn28_rounded_pred}, Actual: {fn28_rounded_actual}"
         fn28_comparisons.append(fn28_comparison)
 
-    return fn28_comparisons
+    return fn28_comparisons, fn28_config_df
 
 
 def pandas_df_to_pdf(fn29_dataframe, fn29_timestamp, fn29_figure_filenames, fn29_filename_dataset, fn29_nr_features, fn29_nr_examples, fn29_examples_model_predictions):
@@ -1430,7 +1511,7 @@ def pandas_df_to_pdf(fn29_dataframe, fn29_timestamp, fn29_figure_filenames, fn29
     # Create a table with the data
     fn29_table = Table(fn29_data)
 
-    # Find the index of 'mean_absolute_error' column
+    # Find the index of '%err' column that contains the % error.
     fn29_mae_index = fn29_sorted_dataframe.columns.tolist().index('%err')
 
     fn29_font_size = 8
@@ -1853,8 +1934,6 @@ def run_optuna_study(fn32_train_dev_dataframes, fn32_timestamp, fn32_n_trials, f
 
         return fn33_loss_dev
 
-    global global_study_mean_percentage_error
-
     fn32_study = optuna.create_study(direction='minimize')
 
     fn32_hyperparameter_ranges = parse_optuna_hyperparameter_ranges('../input/nn_hyperpara_screener_optuna_ranges.csv')
@@ -1937,6 +2016,7 @@ if run_optuna:                          # Instead of manually tuning, the optimi
 delete_pth_files()                          # Deletes all .pth files from the dir nn_hyperpara_screener_model_pth_files (so they do not pile up during screening)
 
 config = read_and_process_config(amount_of_rows)        # Get the hyperparameter info from the config file.
+
 check_dataframe_columns(config)                         # Check if the columns of the config file are correctly set up
 
 nr_of_models = config.shape[0]                              # Get the number of rows = number of models to test
@@ -1967,9 +2047,8 @@ for model_nr in range(nr_of_models):
     fig = train_and_optionally_plot(model, train_loader, nr_epochs, optimizer, criterion, x_dev_tensor, y_dev_tensor, noise_stddev, inside_optuna, model_name, timestamp, show_plots)
     loss_vs_epoch_figures.append(fig)
 
-    ten_examples_model_predictions = evaluate_model(model, x_dev, y_dev, model_nr, config)
-    examples_model_predictions[model_name] = ten_examples_model_predictions                             # Store the predictions in a hash for the pdf.
-
+    ten_examples_model_predictions, config = evaluate_model(model, x_dev, y_dev, model_nr, config)
+    examples_model_predictions[model_name] = ten_examples_model_predictions                    # Store the predictions in a hash for the pdf.
 
 ##################################################
 
