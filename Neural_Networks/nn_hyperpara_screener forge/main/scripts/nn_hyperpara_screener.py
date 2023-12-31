@@ -32,52 +32,6 @@ import torch.optim as optim
 # Section, where all the functions and classes are stored. All the function calls and class instantiations are below this section.
 
 
-# def round_to_three_custom(fn1_num):
-#     """
-#     Description:
-#         Modify a floating-point number to have at most three non-zero digits after the decimal point.
-#
-#     Input:
-#         fn1_num (float): The number to be modified.
-#
-#     Output:
-#         float: The modified number with at most three non-zero digits after the decimal point.
-#
-#     Function-code:
-#         fn1_
-#     """
-#
-#     if isinstance(fn1_num, (float, np.float64, np.float32)):            # To avoid errors when this is applied to a mixed list.
-#         fn1_num_str = str(fn1_num)
-#         if '.' in fn1_num_str:
-#             fn1_whole, fn1_decimal = fn1_num_str.split('.')             # Splitting the number into whole and decimal parts
-#             fn1_non_zero_count = 0
-#             fn1_found_non_zero_digit_before_dot = False
-#
-#             for fn1_local_i, fn1_digit in enumerate(fn1_whole):         # Loop over the decimal digits (starting from the . on leftwards)
-#                 if fn1_digit != '0':
-#                     fn1_found_non_zero_digit_before_dot = True
-#
-#             for fn1_local_i, fn1_digit in enumerate(fn1_decimal):
-#                 if fn1_digit != '0':
-#                     fn1_non_zero_count += 1
-#
-#                 if fn1_non_zero_count == 3:
-#                     # Keeping up to the third non-zero digit and truncating the rest
-#                     fn1_new_decimal = fn1_decimal[:fn1_local_i + 1]
-#                     return float(fn1_whole + '.' + fn1_new_decimal)
-#
-#                 if fn1_local_i == 2 and fn1_found_non_zero_digit_before_dot:
-#                     fn1_new_decimal = fn1_decimal[:fn1_local_i]
-#                     return float(fn1_whole + '.' + fn1_new_decimal)
-#
-#             return float(fn1_num_str)       # Return the original number if less than 3 non-zero digits
-#         else:
-#             return int(fn1_num_str)         # Return the original number if no decimal part
-#     else:
-#         return fn1_num
-
-
 def round_to_three_custom(fn1_num):
     """
     Description:
@@ -1653,7 +1607,7 @@ def pandas_df_to_pdf(fn29_dataframe, fn29_timestamp, fn29_figure_filenames, fn29
         os.remove(fn29_img_filename)
 
 
-def optuna_output_to_pdf(fn30_study, fn30_mean_percent_error, fn30_timestamp, fn30_cost_function):
+def optuna_output_to_pdf(fn30_study, fn30_mean_percent_error, fn30_timestamp, fn30_cost_function, fn30_random_seed):
     """
     Description:
         Converts the results of an Optuna optimization study into a detailed PDF report. This function generates a summary
@@ -1712,13 +1666,22 @@ def optuna_output_to_pdf(fn30_study, fn30_mean_percent_error, fn30_timestamp, fn
     fn30_line_height = 20
     fn30_param_start_position = fn30_top_position - 120  # Starting position for parameters
 
+    fn30_i = -1  # Set a default value for fn30_i
     for fn30_i, (fn30_k, fn30_v) in enumerate(fn30_rounded_params.items()):
-        fn30_c.drawString(fn30_left_margin, fn30_param_start_position - (fn30_i * fn30_line_height), f"{fn30_k} : {fn30_v}")
+        # Check if the key is 'optimizer' and value is 'Adam'
+        if fn30_k == "optimizer" and fn30_v == "Adam":
+            fn30_additional_string = " (beta_1 = 0.9, beta_2 = 0.999)"
+            fn30_c.drawString(fn30_left_margin, fn30_param_start_position - (fn30_i * fn30_line_height), f"{fn30_k} : {fn30_v}{fn30_additional_string}")
+        else:
+            fn30_c.drawString(fn30_left_margin, fn30_param_start_position - (fn30_i * fn30_line_height), f"{fn30_k} : {fn30_v}")
+
+    # Print the random seed line after the loop
+    fn30_c.drawString(fn30_left_margin, fn30_param_start_position - ((fn30_i + 1) * fn30_line_height), f"Random seed : {fn30_random_seed}")
 
     fn30_param_lines = len(fn30_rounded_params)
 
     # Calculate position for 'Copy and paste:' line
-    fn30_copy_paste_position = fn30_param_start_position - (fn30_param_lines * fn30_line_height) - fn30_line_height
+    fn30_copy_paste_position = fn30_param_start_position - (fn30_param_lines * fn30_line_height) - fn30_line_height - 50
 
     # Add a line for 'Copy and paste:' in bold
     fn30_c.setFont("Helvetica-Bold", 12)  # Set font to bold for 'Copy and paste:'
@@ -1747,6 +1710,14 @@ def optuna_output_to_pdf(fn30_study, fn30_mean_percent_error, fn30_timestamp, fn
 
     # Join the strings without spaces after commas
     fn30_values_str = ','.join(fn30_param_values)
+
+    fn30_values_str += f",{fn30_random_seed}"          # Add the random seed at the end
+
+    if 'Adam' in fn30_values_str:                       # Add the beta parameters of Adam, because these are not optimized by Optuna.
+        # Find the index where 'Adam' ends
+        index_after_adam = fn30_values_str.find('Adam') + len('Adam')
+        # Insert the substring ',0.9,0.999' after 'Adam'
+        fn30_values_str = fn30_values_str[:index_after_adam] + ',0.9,0.999' + fn30_values_str[index_after_adam:]
 
     # Set font and draw the string
     fn30_c.setFont("Helvetica", 6)  # Set back to regular font for the values
@@ -1858,7 +1829,7 @@ def run_optuna_study(fn32_train_dev_dataframes, fn32_timestamp, fn32_n_trials, f
         fn32_
     """
 
-    def objective(fn33_trial, fn33_train_dev_dataframes, fn33_input_size, fn33_hyperparameter_ranges):
+    def objective(fn33_trial, fn33_train_dev_dataframes, fn33_input_size, fn33_hyperparameter_ranges, fn33_random_seed):
         """
         Description:
             The objective function for the Optuna study, defining how the model should be trained and evaluated.
@@ -1903,8 +1874,8 @@ def run_optuna_study(fn32_train_dev_dataframes, fn32_timestamp, fn32_n_trials, f
         fn33_momentum = None
 
         if fn33_optimizer_type == 'Adam':
-            fn33_beta1 = fn33_trial.suggest_float('beta1', 0.5, 0.9)
-            fn33_beta2 = fn33_trial.suggest_float('beta2', 0.999, 0.9999)
+            fn33_beta1 = 0.9                    # Fixed value for beta1 (Andrew Ng almost never tunes these)
+            fn33_beta2 = 0.999                  # Fixed value for beta2
             fn33_optim_add_params = [fn33_beta1, fn33_beta2]
         elif fn33_optimizer_type == 'SGD':
             fn33_momentum = fn33_trial.suggest_float('momentum', 0.5, 0.9)
@@ -1917,7 +1888,6 @@ def run_optuna_study(fn32_train_dev_dataframes, fn32_timestamp, fn32_n_trials, f
         fn33_dropout = fn33_trial.suggest_float('dropout', *fn33_hyperparameter_ranges['dropout'])
         fn33_cost_function = fn33_hyperparameter_ranges['cost_function']
         fn33_psi = fn33_trial.suggest_float('psi', *fn33_hyperparameter_ranges['psi'])
-        fn33_random_seed = fn33_hyperparameter_ranges.get('random_seed', 999)
 
         fn33_hyperparams = {
             'nr_neurons_hidden_layers': fn33_nr_neurons,
@@ -1944,7 +1914,11 @@ def run_optuna_study(fn32_train_dev_dataframes, fn32_timestamp, fn32_n_trials, f
     fn32_study = optuna.create_study(direction='minimize')
 
     fn32_hyperparameter_ranges = parse_optuna_hyperparameter_ranges('../input/nn_hyperpara_screener_optuna_ranges.csv')
-    fn32_study.optimize(lambda trial: objective(trial, fn32_train_dev_dataframes, fn32_input_size, fn32_hyperparameter_ranges), fn32_n_trials)
+    fn32_random_seed = fn32_hyperparameter_ranges.get('random_seed', 999)
+    fn32_study.optimize(lambda trial: objective(trial, fn32_train_dev_dataframes, fn32_input_size, fn32_hyperparameter_ranges, fn32_random_seed), fn32_n_trials)
+
+    best_hyperparams = fn32_study.best_trial.params
+    print("\n\nBest hyperparameters: ", best_hyperparams, "\n")
 
     #################################################################################
     # Generate a range of plots that Optuna has to offer
@@ -1960,7 +1934,7 @@ def run_optuna_study(fn32_train_dev_dataframes, fn32_timestamp, fn32_n_trials, f
 
     fn32_hyperparameter_ranges = parse_optuna_hyperparameter_ranges('../input/nn_hyperpara_screener_optuna_ranges.csv')
     fn32_cost_function = fn32_hyperparameter_ranges['cost_function']
-    optuna_output_to_pdf(fn32_study, global_study_mean_percentage_error, fn32_timestamp, fn32_cost_function)       # Generate a report for the Optuna study.
+    optuna_output_to_pdf(fn32_study, global_study_mean_percentage_error, fn32_timestamp, fn32_cost_function, fn32_random_seed)       # Generate a report for the Optuna study.
 
     return fn32_study.best_trial.params
 
