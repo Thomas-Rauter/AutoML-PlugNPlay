@@ -1394,13 +1394,17 @@ def evaluate_model(fn28_model, fn28_x_dev_norm, fn28_y_dev_data, fn28_model_inde
         fn28_rounded_pred = round_to_three_custom(fn28_pred)
         fn28_actual = fn28_y_dev_tensor[fn28_i].item()
         fn28_rounded_actual = round_to_three_custom(fn28_actual)
-        fn28_comparison = f"Prediction: {fn28_rounded_pred}, Actual: {fn28_rounded_actual}"
-        fn28_comparisons.append(fn28_comparison)
+        fn28_comparison = [fn28_rounded_pred, fn28_rounded_actual]
+        print(fn28_comparison)
+        if 'fn28_comparisons' in locals() and len(fn28_comparisons) > 0:
+            fn28_comparisons = np.vstack([fn28_comparisons, fn28_comparison])
+        else:
+            fn28_comparisons = np.array([fn28_comparison])
 
     return fn28_comparisons, fn28_config_df
 
 
-def pandas_df_to_pdf(fn29_dataframe, fn29_timestamp, fn29_figure_filenames, fn29_filename_dataset, fn29_nr_features, fn29_nr_examples, fn29_examples_model_predictions):
+def pandas_df_to_pdf(fn29_dataframe, fn29_timestamp, fn29_figure_filenames, fn29_filename_dataset, fn29_nr_features, fn29_nr_examples, fn29_examples_model_predictions, fn29_crossval_k):
     """
     Description:
         Converts a pandas DataFrame into a PDF report. This function sorts the DataFrame based on a specified column,
@@ -1461,6 +1465,23 @@ def pandas_df_to_pdf(fn29_dataframe, fn29_timestamp, fn29_figure_filenames, fn29
 
     # Add extra space after title
     fn29_elements.append(Spacer(1, 0.5 * inch))  # Increase space after title (second number, the one after the ,)
+
+    # Add a line that states if k-fold crossvalidation was used.
+    if fn29_crossval_k:
+        fn29_crossval_used = f"Yes (The 10 example predictions vs the actual labels are averaged results over all {fn29_crossval_k} folds)"
+    else:
+        fn29_crossval_used = "No"
+
+    fn29_dataset_paragraph_style = ParagraphStyle('DatasetInfo', fontSize=12, spaceBefore=10, spaceAfter=10)
+    fn29_dataset_info = f"k-fold crossvalidation performed: {fn29_crossval_used}"
+    fn29_dataset_paragraph = Paragraph(fn29_dataset_info, fn29_dataset_paragraph_style)
+    fn29_elements.append(fn29_dataset_paragraph)
+
+    if fn29_crossval_k:
+        fn29_dataset_paragraph_style = ParagraphStyle('DatasetInfo', fontSize=12, spaceBefore=10, spaceAfter=10)
+        fn29_dataset_info = f"Amount of folds: {fn29_crossval_k} (The Loss vs. Epoch plots shown are from the last fold)"
+        fn29_dataset_paragraph = Paragraph(fn29_dataset_info, fn29_dataset_paragraph_style)
+        fn29_elements.append(fn29_dataset_paragraph)
 
     # Add a line that states the dataset used.
     fn29_dataset_paragraph_style = ParagraphStyle('DatasetInfo', fontSize=12, spaceBefore=10, spaceAfter=10)
@@ -1587,7 +1608,7 @@ def pandas_df_to_pdf(fn29_dataframe, fn29_timestamp, fn29_figure_filenames, fn29
 
             # Add a line for the value
             fn29_array_to_display = fn29_examples_model_predictions[fn29_key]
-            fn29_array_paragraph = Paragraph("<br/>".join(fn29_array_to_display), fn29_stylesheet['Normal'])
+            fn29_array_paragraph = Paragraph(fn29_array_to_display, fn29_stylesheet['Normal'])
             fn29_array_paragraphs.append(fn29_array_paragraph)
 
         # Create a table with key-value pairs for the current row
@@ -1975,6 +1996,38 @@ def run_optuna_study(fn32_train_dev_dataframes, fn32_timestamp, fn32_n_trials, f
     return fn32_study.best_trial.params
 
 
+def format_numpy_array_to_string(data):
+    """
+    Format a numpy array with two columns into a string format.
+
+    Args:
+        data (numpy.ndarray): Numpy array with exactly two columns.
+
+    Returns:
+        str: Formatted string with each row in the format "Prediction: {pred}, Actual: {actual}".
+    """
+    # Check if the input numpy array has exactly two columns
+    if data.shape[1] != 2:
+        raise ValueError("Input numpy array must have exactly two columns.")
+
+    # Initialize an empty list to store the formatted strings
+    formatted_strings = []
+
+    # Iterate through the rows of the numpy array
+    for row in data:
+        fn28_rounded_pred = round_to_three_custom(row[0])  # Value from the first column
+        fn28_rounded_actual = round_to_three_custom(row[1])  # Value from the second column
+
+        # Format the string and append it to the list
+        formatted_string = f"Prediction: {fn28_rounded_pred}, Actual: {fn28_rounded_actual}"
+        formatted_strings.append(formatted_string)
+
+    # Join the formatted strings with newline characters to create a single string
+    result_string = "\n".join(formatted_strings)
+
+    return result_string
+
+
 # End of the section where all the functions and classes are stored.
 #####################################################################################################################################
 #####################################################################################################################################
@@ -2071,6 +2124,7 @@ if crossval_k:
     kf = KFold(n_splits=crossval_k)
     for model_nr in range(nr_of_models):
         current_fold = 0
+        ten_examples_model_predictions_list = []
         for train_index, dev_index in kf.split(crossval_df):
             current_fold += 1
             train_set_data = crossval_df.iloc[train_index]
@@ -2107,12 +2161,27 @@ if crossval_k:
                                             show_plots)
 
             ten_examples_model_predictions, config = evaluate_model(model, x_dev, y_dev, model_nr, config)
-            examples_model_predictions[model_name] = ten_examples_model_predictions  # Store the predictions in a hash for the pdf.
+            ten_examples_model_predictions_list.append(ten_examples_model_predictions)
+
+        # Initialize an array to store the averages
+        averages = np.zeros_like(ten_examples_model_predictions_list[0])
+
+        # Calculate the average for each position
+        for array in ten_examples_model_predictions_list:
+            averages += array
+
+        # Divide by the number of arrays to get the average
+        averages /= len(ten_examples_model_predictions_list)
+        ten_examples_model_predictions = averages
+        ten_examples_model_predictions = format_numpy_array_to_string(ten_examples_model_predictions)
+
+        examples_model_predictions[model_name] = ten_examples_model_predictions  # Store the predictions in a hash for the pdf.
 
         loss_vs_epoch_figures.append(fig)
 
     if '%err' in config.columns and crossval_k is not None:     # Divide the summed up % error by the amount of crossvalidations (crossval_k)
         config['%err'] = config['%err'] / crossval_k
+        config['%err'] = config['%err'].apply(round_to_three_custom)
 else:
     for model_nr in range(nr_of_models):
         # This function assigns the values from the config file about the hyperparameters to the respective variables
@@ -2135,6 +2204,7 @@ else:
         loss_vs_epoch_figures.append(fig)
 
         ten_examples_model_predictions, config = evaluate_model(model, x_dev, y_dev, model_nr, config)
+        ten_examples_model_predictions = format_numpy_array_to_string(ten_examples_model_predictions)
         examples_model_predictions[model_name] = ten_examples_model_predictions                    # Store the predictions in a hash for the pdf.
 
 ##################################################
@@ -2147,6 +2217,6 @@ for i, fig in enumerate(loss_vs_epoch_figures):
     fig.savefig(img_filename, bbox_inches='tight')
     figure_filenames_list.append(img_filename)
 
-pandas_df_to_pdf(config, timestamp, figure_filenames_list, train_set_name, input_size, amount_of_rows, examples_model_predictions)
+pandas_df_to_pdf(config, timestamp, figure_filenames_list, train_set_name, input_size, amount_of_rows, examples_model_predictions, crossval_k)
 
 os.system('play -nq -t alsa synth 1 sine 600')                                      # Give a notification sound when done.
