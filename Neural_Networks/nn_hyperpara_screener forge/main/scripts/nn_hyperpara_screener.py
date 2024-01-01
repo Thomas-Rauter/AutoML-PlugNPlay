@@ -104,9 +104,9 @@ def create_config():
     if not os.path.exists(fn2_filename):
         with open(fn2_filename, 'w') as fn2_file:
             fn2_headers = ['model_name', 'neurons', 'acti_fun', 'acti_fun_out', 'epochs', 'batch_size', 'noise',
-                           'optimizer', 'alpha', 'lamda', 'dropout', 'psi', 'cost_fun']
+                           'optimizer', 'alpha', 'decay_rate', 'lamda', 'dropout', 'psi', 'cost_fun']
             fn2_file.write(','.join(fn2_headers))
-            fn2_starter_model = ["\nModel_1", '"10,1"', "ReLU", "Linear", 100, 64, 0, "Adam,0.9,0.99", 0.01, 0.001, 0, 1, "MSELoss"]
+            fn2_starter_model = ["\nModel_1", '"10,1"', "ReLU", "Linear", 100, 64, 0, "Adam,0.9,0.99", 0.01, 0, 0.001, 0, 1, "MSELoss"]
             fn2_file.write(','.join([str(item) for item in fn2_starter_model]))
 
 
@@ -319,8 +319,9 @@ def read_and_process_config(fn6_nr_examples):
         'epochs': 100,
         'batch_size': fn6_nr_examples,
         'noise': 0,
-        'optimizer': 'Adam,0.9,.099',
+        'optimizer': 'Adam,0.9,0.099,10e-8',
         'alpha': 0.01,
+        'decay_rate': 0,
         'lamda': 0.001,
         'dropout': 0,
         'psi': 1,
@@ -337,6 +338,7 @@ def read_and_process_config(fn6_nr_examples):
         'noise': float,
         'optimizer': str,
         'alpha': float,
+        'decay_rate': float,
         'lamda': float,
         'dropout': float,
         'psi': float,
@@ -461,6 +463,7 @@ def check_dataframe_columns(fn9_df):
         'noise': lambda fn9_x: pd.isna(fn9_x) or (isinstance(fn9_x, (int, float)) and fn9_x >= 0),
         'optimizer': lambda fn9_x: pd.isna(fn9_x) or isinstance(fn9_x, str),
         'alpha': lambda fn9_x: pd.isna(fn9_x) or isinstance(fn9_x, (int, float)),
+        'decay_rate': lambda fn9_x: pd.isna(fn9_x) or isinstance(fn9_x, (int, float)),
         'lamda': lambda fn9_x: pd.isna(fn9_x) or isinstance(fn9_x, float),
         'dropout': lambda fn9_x: pd.isna(fn9_x) or (isinstance(fn9_x, (int, float)) and 0 <= fn9_x < 1),
         'psi': lambda fn9_x: pd.isna(fn9_x) or isinstance(fn9_x, (int, float)),
@@ -571,10 +574,10 @@ def assign_hyperparameters_from_config(fn12_pandas_df, fn12_row_nr, fn12_amount_
     """
 
     fn12_variable_names = ['model_name', 'nr_neurons_str', 'activation_function_type', 'acti_fun_out', 'nr_epochs',
-                           'batch_size', 'noise_stddev', 'optimizer_type', 'learning_rate', 'lamda', 'dropout',
+                           'batch_size', 'noise_stddev', 'optimizer_type', 'learning_rate', 'decay_rate', 'lamda', 'dropout',
                            'psi_value', 'cost_function','random_seed']
     fn12_column_names = ['model_name', 'neurons', 'acti_fun', 'acti_fun_out', 'epochs', 'batch_size',
-                         'noise', 'optimizer', 'alpha', 'lamda', 'dropout', 'psi', 'cost_fun','seed']
+                         'noise', 'optimizer', 'alpha', 'decay_rate', 'lamda', 'dropout', 'psi', 'cost_fun','seed']
 
     fn12_hyperparams = {}
 
@@ -970,7 +973,10 @@ def get_optimizer(fn22_model_parameters, fn22_optimizer_type, fn22_learning_rate
     if fn22_optimizer_type == 'Adam':
         # Assuming the first two elements in local_additional_params are beta1 and beta2
         fn22_betas = (fn22_additional_params[0], fn22_additional_params[1])
-        fn22_kwargs['betas'] = fn22_betas
+        fn22_kwargs['betas'] = fn22_betas           # betas is a keyword for the Adam optimizer
+
+        fn22_epsilon = fn22_additional_params[2]
+        fn22_kwargs['eps'] = fn22_epsilon           # eps is the keyword for the Adam optimizer
 
     fn22_optimizer = fn22_optimizer_class(fn22_model_parameters, **fn22_kwargs)
     return fn22_optimizer
@@ -1097,7 +1103,7 @@ def prepare_model_training(fn25_hyperparams, fn25_train_dev_dataframes, fn25_inp
     return fn25_model, fn25_optimizer, fn25_criterion, fn25_train_loader, fn25_dev_loader, fn25_x_dev_tensor, fn25_y_dev_tensor
 
 
-def train_and_optionally_plot(fn26_model_to_train, fn26_training_loader, fn26_epochs_num, fn26_training_optimizer, fn26_loss_criterion, fn26_x_dev_data, fn26_y_dev_data, fn26_noise_stddev, fn26_inside_optuna=True, fn26_name_of_model='MyModel', fn26_timestamp='now', fn26_show_plots=False, fn26_plot_every_epochs=10):
+def train_and_optionally_plot(fn26_model_to_train, fn26_training_loader, fn26_epochs_num, fn26_training_optimizer, fn26_loss_criterion, fn26_x_dev_data, fn26_y_dev_data, fn26_noise_stddev, fn26_learning_rate, fn26_decay_rate, fn26_inside_optuna=True, fn26_name_of_model='MyModel', fn26_timestamp='now', fn26_show_plots=False, fn26_plot_every_epochs=10):
     """
     Description:
         Trains the model and plots the training and development loss.
@@ -1148,6 +1154,13 @@ def train_and_optionally_plot(fn26_model_to_train, fn26_training_loader, fn26_ep
     fn26_loss_train = None
 
     for fn26_epoch in range(fn26_epochs_num):  # Goes from 0 to epochs_num - 1.
+        # Calculate the adjusted learning rate
+        fn26_adjusted_lr = fn26_learning_rate / (1 + fn26_decay_rate * fn26_epoch)
+
+        # Update the learning rate in the optimizer
+        for fn26_param_group in fn26_training_optimizer.param_groups:
+            fn26_param_group['lr'] = fn26_adjusted_lr
+
         for fn26_batch_x, fn26_batch_y in fn26_training_loader:  # The training_loader always delivers a new batch.
             fn26_training_optimizer.zero_grad()  # Resets the gradients of the model parameters.
 
@@ -1670,7 +1683,7 @@ def optuna_output_to_pdf(fn30_study, fn30_mean_percent_error, fn30_timestamp, fn
     for fn30_i, (fn30_k, fn30_v) in enumerate(fn30_rounded_params.items()):
         # Check if the key is 'optimizer' and value is 'Adam'
         if fn30_k == "optimizer" and fn30_v == "Adam":
-            fn30_additional_string = " (beta_1 = 0.9, beta_2 = 0.999)"
+            fn30_additional_string = " (beta_1 = 0.9, beta_2 = 0.999, epsilon = 10e-8)"
             fn30_c.drawString(fn30_left_margin, fn30_param_start_position - (fn30_i * fn30_line_height), f"{fn30_k} : {fn30_v}{fn30_additional_string}")
         else:
             fn30_c.drawString(fn30_left_margin, fn30_param_start_position - (fn30_i * fn30_line_height), f"{fn30_k} : {fn30_v}")
@@ -1717,10 +1730,10 @@ def optuna_output_to_pdf(fn30_study, fn30_mean_percent_error, fn30_timestamp, fn
         # Find the index where 'Adam' ends
         index_after_adam = fn30_values_str.find('Adam') + len('Adam')
         # Insert the substring ',0.9,0.999' after 'Adam'
-        fn30_values_str = fn30_values_str[:index_after_adam] + ',0.9,0.999' + fn30_values_str[index_after_adam:]
+        fn30_values_str = fn30_values_str[:index_after_adam] + ',0.9,0.999,10e-8' + fn30_values_str[index_after_adam:]
 
     # Set font and draw the string
-    fn30_c.setFont("Helvetica", 6)  # Set back to regular font for the values
+    fn30_c.setFont("Helvetica", 4)  # Set back to regular font for the values
     fn30_c.drawString(fn30_left_margin, fn30_copy_paste_position - fn30_line_height, fn30_values_str)
 
     # Start figures from the second page
@@ -1876,7 +1889,8 @@ def run_optuna_study(fn32_train_dev_dataframes, fn32_timestamp, fn32_n_trials, f
         if fn33_optimizer_type == 'Adam':
             fn33_beta1 = 0.9                    # Fixed value for beta1 (Andrew Ng almost never tunes these)
             fn33_beta2 = 0.999                  # Fixed value for beta2
-            fn33_optim_add_params = [fn33_beta1, fn33_beta2]
+            fn33_epsilon = 10e-8
+            fn33_optim_add_params = [fn33_beta1, fn33_beta2, fn33_epsilon]
         elif fn33_optimizer_type == 'SGD':
             fn33_momentum = fn33_trial.suggest_float('momentum', 0.5, 0.9)
         else:
@@ -1884,6 +1898,7 @@ def run_optuna_study(fn32_train_dev_dataframes, fn32_timestamp, fn32_n_trials, f
             sys.exit()
 
         fn33_learning_rate = fn33_trial.suggest_float('alpha', *fn33_hyperparameter_ranges['alpha'], log=True)
+        fn33_decay_rate = fn33_trial.suggest_float('decay_rate', *fn33_hyperparameter_ranges['decay_rate'], log=True)
         fn33_lamda = fn33_trial.suggest_float('lamda', *fn33_hyperparameter_ranges['lamda'], log=True)
         fn33_dropout = fn33_trial.suggest_float('dropout', *fn33_hyperparameter_ranges['dropout'])
         fn33_cost_function = fn33_hyperparameter_ranges['cost_function']
@@ -1907,7 +1922,7 @@ def run_optuna_study(fn32_train_dev_dataframes, fn32_timestamp, fn32_n_trials, f
 
         fn33_model, fn33_optimizer, fn33_criterion, fn33_train_loader, fn33_dev_loader, fn33_x_dev_tensor, fn33_y_dev_tensor = prepare_model_training(fn33_hyperparams, fn33_train_dev_dataframes, fn33_input_size)
 
-        fn33_loss_dev = train_and_optionally_plot(fn33_model, fn33_train_loader, fn33_nr_epochs, fn33_optimizer, fn33_criterion, fn33_x_dev_tensor, fn33_y_dev_tensor, fn33_noise)
+        fn33_loss_dev = train_and_optionally_plot(fn33_model, fn33_train_loader, fn33_nr_epochs, fn33_optimizer, fn33_criterion, fn33_x_dev_tensor, fn33_y_dev_tensor, fn33_noise, fn33_learning_rate, fn33_decay_rate)
 
         return fn33_loss_dev
 
@@ -2017,6 +2032,8 @@ for model_nr in range(nr_of_models):
     model_name = hyperparams['model_name']
     nr_epochs = hyperparams['nr_epochs']
     noise_stddev = hyperparams['noise_stddev']
+    learning_rate = hyperparams['learning_rate']
+    decay_rate = hyperparams['decay_rate']
 
     # The print statement below is to separate the different terminal sections for the models.
     print("\n\n############################################################################################\n")
@@ -2025,7 +2042,7 @@ for model_nr in range(nr_of_models):
     model, optimizer, criterion, train_loader, dev_loader, x_dev_tensor, y_dev_tensor = prepare_model_training(hyperparams, train_dev_dataframes, input_size)
 
     inside_optuna = False
-    fig = train_and_optionally_plot(model, train_loader, nr_epochs, optimizer, criterion, x_dev_tensor, y_dev_tensor, noise_stddev, inside_optuna, model_name, timestamp, show_plots)
+    fig = train_and_optionally_plot(model, train_loader, nr_epochs, optimizer, criterion, x_dev_tensor, y_dev_tensor, noise_stddev, learning_rate, decay_rate, inside_optuna, model_name, timestamp, show_plots)
     loss_vs_epoch_figures.append(fig)
 
     ten_examples_model_predictions, config = evaluate_model(model, x_dev, y_dev, model_nr, config)
