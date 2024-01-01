@@ -24,6 +24,7 @@ import glob
 import optuna
 import subprocess
 import torch.optim as optim
+from sklearn.model_selection import KFold
 
 
 #####################################################################################################################################
@@ -221,22 +222,31 @@ def parse_command_line_args(fn3_arguments):
         sys.exit()
 
     fn3_parser = argparse.ArgumentParser(description='Process the development set size and file names.')
-    fn3_parser.add_argument('train_set_name', type=str, help='Name of the train set file')
-    fn3_parser.add_argument('dev_set_name', type=str, help='Name of the dev set file')
+
+    fn3_parser.add_argument('dataset_name', type=str, help='Name of the train set file', default=None)
+    fn3_parser.add_argument('dev_set_name', type=str, help='Name of the dev set file', nargs='?',  default=None)
 
     # Optional arguments
     fn3_parser.add_argument('--plots', action='store_true', help='Optional argument to show plots')
     fn3_parser.add_argument('--optuna', nargs='?', const=50, type=int, default=False, help='Optional argument to run Optuna with a specified number')
+    fn3_parser.add_argument('--crossval', type=int, default=False, help='Optional argument to run k-fold cross-validation with the specified number of folds (e.g., --crossval=10)')
 
     fn3_args = fn3_parser.parse_args(fn3_arguments)
 
-    fn3_train_set_name = fn3_args.train_set_name
-    fn3_dev_set_name = fn3_args.dev_set_name
+    # Validate arguments
+    if fn3_args.crossval:
+        fn3_set_name = fn3_args.dataset_name
+    else:
+        if not fn3_args.train_set_name or not fn3_args.dev_set_name:
+            fn3_parser.error("The train_set_name and dev_set_name arguments are required when not using --crossval.")
+        fn3_set_name = (fn3_args.dataset_name, fn3_args.dev_set_name)
+
     fn3_show_plots = fn3_args.plots
     fn3_run_optuna = fn3_args.optuna is not False
     fn3_trials = fn3_args.optuna if fn3_args.optuna is not False else None
+    fn3_k_fold = fn3_args.crossval if fn3_args.crossval else None
 
-    return fn3_train_set_name, fn3_dev_set_name, fn3_show_plots, fn3_run_optuna, fn3_trials
+    return fn3_set_name, fn3_show_plots, fn3_run_optuna, fn3_trials, fn3_k_fold
 
 
 def create_timestamp():
@@ -495,14 +505,15 @@ def check_dataframe_columns(fn9_df):
     print("All required columns are present and data meets all specified criteria.")
 
 
-def load_datasets(fn10_train_set_name, fn10_dev_set_name):
+def load_datasets(fn10_train_set_name, fn10_dev_set_name=False):
     """
     Description:
         Load datasets based on file extension.
 
     Input:
         fn10_train_set_name (str): File path for the training dataset.
-        fn10_dev_set_name (str): File path for the development dataset.
+        Optional input:
+            fn10_dev_set_name (str): File path for the development dataset.
 
     Output:
         tuple: A tuple containing two pandas DataFrames, one for the training set and one for the development set.
@@ -546,11 +557,13 @@ def load_datasets(fn10_train_set_name, fn10_dev_set_name):
         else:
             raise ValueError(f"Unsupported file type: {fn11_file_ext}")
 
-    # Load the datasets
+    # Load the dataset(s)
     fn10_train_set_data = load_dataset(fn10_train_set_name)
-    fn10_dev_set_data = load_dataset(fn10_dev_set_name)
-
-    return fn10_train_set_data, fn10_dev_set_data
+    if fn10_dev_set_name:                                       # In the case of k-fold crossval, there is only one dataframe (no specific file with the dev set).
+        fn10_dev_set_data = load_dataset(fn10_dev_set_name)
+        return fn10_train_set_data, fn10_dev_set_data
+    else:
+        return fn10_train_set_data
 
 
 def assign_hyperparameters_from_config(fn12_pandas_df, fn12_row_nr, fn12_amount_of_rows):
@@ -1361,9 +1374,17 @@ def evaluate_model(fn28_model, fn28_x_dev_norm, fn28_y_dev_data, fn28_model_inde
 
         # Calculate % error (for nice and intuitive reporting)
         fn28_mean_percent_error = calculate_mean_percent_error(fn28_predictions, fn28_y_dev_tensor)
+
         if '%err' not in fn28_config_df.columns:
             fn28_config_df['%err'] = None
-        fn28_config_df.at[fn28_model_index, '%err'] = fn28_mean_percent_error
+            fn28_config_df.at[fn28_model_index, '%err'] = fn28_mean_percent_error
+        else:
+            # If the column exists and the value at the specific index is not None, add to it.
+            if fn28_config_df.at[fn28_model_index, '%err'] is not None:
+                fn28_config_df.at[fn28_model_index, '%err'] += fn28_mean_percent_error
+            else:
+                fn28_config_df.at[fn28_model_index, '%err'] = fn28_mean_percent_error
+
         print(f"Mean % error: {fn28_mean_percent_error} %")
 
     fn28_comparisons = []
@@ -1985,23 +2006,45 @@ def run_optuna_study(fn32_train_dev_dataframes, fn32_timestamp, fn32_n_trials, f
 cmd_args = sys.argv[1:]
 
 # Call the parse_command_line_args function with the command line arguments
-train_set_name, dev_set_name, show_plots, run_optuna, nr_trials = parse_command_line_args(cmd_args)
+dataset_name, show_plots, run_optuna, nr_trials, crossval_k = parse_command_line_args(cmd_args)
 
-train_set_data, dev_set_data = load_datasets(train_set_name, dev_set_name)          # Load the dataset and assign it to variables
+if crossval_k:
+    crossval_df = load_datasets(dataset_name)
 
-x_train = train_set_data.iloc[:, :-1].values
-y_train = train_set_data.iloc[:, -1].values
+    train_set_name = dataset_name                   # Just for the output report-PDF to state the name of the dataset.
 
-x_dev = dev_set_data.iloc[:, :-1].values
-y_dev = dev_set_data.iloc[:, -1].values
+    total_rows = crossval_df.shape[0]  # Total number of rows in the full dataset
+    fold_size = total_rows // crossval_k  # Number of rows in each fold (approximate)
 
-train_dev_dataframes = [x_train, y_train, x_dev, y_dev]
+    # Training rows in each fold (approximate)
+    amount_of_rows = fold_size * (crossval_k - 1)
+
+    x_dev = None
+    y_dev = None
+    train_dev_dataframes = None
+else:
+    crossval_df = False
+
+    if isinstance(dataset_name, tuple):
+        train_set_name, dev_set_name = dataset_name     # Unpack the tuple
+    else:
+        raise ValueError("Expected 'dataset_name' to be a tuple of (train_set_name, dev_set_name), but got a different type.")
+
+    train_set_data, dev_set_data = load_datasets(train_set_name, dev_set_name)          # Load the dataset and assign it to variables
+
+    x_train = train_set_data.iloc[:, :-1].values
+    y_train = train_set_data.iloc[:, -1].values
+
+    x_dev = dev_set_data.iloc[:, :-1].values
+    y_dev = dev_set_data.iloc[:, -1].values
+
+    train_dev_dataframes = [x_train, y_train, x_dev, y_dev]
+
+    input_size = x_train.shape[1]  # Automatically set input_size based on the number of features (number of columns)
+    amount_of_rows = x_train.shape[0]
 
 # Create a "timestamp". This is a string with the day and the exact time at the start of the execution and will label the files and serve as "code".
 timestamp = create_timestamp()
-
-input_size = x_train.shape[1]  # Automatically set input_size based on the number of features (number of columns)
-amount_of_rows = x_train.shape[0]
 
 if run_optuna:                          # Instead of manually tuning, the optimizer Optuna does it automatically.
     global_study_mean_percentage_error = None
@@ -2024,29 +2067,75 @@ examples_model_predictions = {}                             # This hash stored a
 ##################################################
 # Section where it loops over the models and trains them.
 
-for model_nr in range(nr_of_models):
+if crossval_k:
+    kf = KFold(n_splits=crossval_k)
+    for model_nr in range(nr_of_models):
+        current_fold = 0
+        for train_index, dev_index in kf.split(crossval_df):
+            current_fold += 1
+            train_set_data = crossval_df.iloc[train_index]
+            dev_set_data = crossval_df.iloc[dev_index]
 
-    # This function assigns the values from the config file about the hyperparameters to the respective variables
-    hyperparams = assign_hyperparameters_from_config(config, model_nr, amount_of_rows)
+            x_train = train_set_data.iloc[:, :-1].values
+            y_train = train_set_data.iloc[:, -1].values
 
-    model_name = hyperparams['model_name']
-    nr_epochs = hyperparams['nr_epochs']
-    noise_stddev = hyperparams['noise_stddev']
-    learning_rate = hyperparams['learning_rate']
-    decay_rate = hyperparams['decay_rate']
+            input_size = x_train.shape[1]  # Automatically set input_size based on the number of features (number of columns)
 
-    # The print statement below is to separate the different terminal sections for the models.
-    print("\n\n############################################################################################\n")
-    print(f"Model: {model_name}\n")         # To assign potential terminal messages to a model.
+            x_dev = dev_set_data.iloc[:, :-1].values
+            y_dev = dev_set_data.iloc[:, -1].values
 
-    model, optimizer, criterion, train_loader, dev_loader, x_dev_tensor, y_dev_tensor = prepare_model_training(hyperparams, train_dev_dataframes, input_size)
+            train_dev_dataframes = [x_train, y_train, x_dev, y_dev]
 
-    inside_optuna = False
-    fig = train_and_optionally_plot(model, train_loader, nr_epochs, optimizer, criterion, x_dev_tensor, y_dev_tensor, noise_stddev, learning_rate, decay_rate, inside_optuna, model_name, timestamp, show_plots)
-    loss_vs_epoch_figures.append(fig)
+            # This function assigns the values from the config file about the hyperparameters to the respective variables
+            hyperparams = assign_hyperparameters_from_config(config, model_nr, amount_of_rows)
 
-    ten_examples_model_predictions, config = evaluate_model(model, x_dev, y_dev, model_nr, config)
-    examples_model_predictions[model_name] = ten_examples_model_predictions                    # Store the predictions in a hash for the pdf.
+            model_name = hyperparams['model_name']
+            nr_epochs = hyperparams['nr_epochs']
+            noise_stddev = hyperparams['noise_stddev']
+            learning_rate = hyperparams['learning_rate']
+            decay_rate = hyperparams['decay_rate']
+
+            # The print statement below is to separate the different terminal sections for the models.
+            print("\n\n############################################################################################\n")
+            print(f"Model: {model_name}\n")  # To assign potential terminal messages to a model.
+            print(f"\n Current k-fold crossvalidation fold: {current_fold}")
+
+            model, optimizer, criterion, train_loader, dev_loader, x_dev_tensor, y_dev_tensor = prepare_model_training(hyperparams, train_dev_dataframes, input_size)
+
+            inside_optuna = False
+            fig = train_and_optionally_plot(model, train_loader, nr_epochs, optimizer, criterion, x_dev_tensor, y_dev_tensor, noise_stddev, learning_rate, decay_rate, inside_optuna, model_name, timestamp,
+                                            show_plots)
+
+            ten_examples_model_predictions, config = evaluate_model(model, x_dev, y_dev, model_nr, config)
+            examples_model_predictions[model_name] = ten_examples_model_predictions  # Store the predictions in a hash for the pdf.
+
+        loss_vs_epoch_figures.append(fig)
+
+    if '%err' in config.columns and crossval_k is not None:     # Divide the summed up % error by the amount of crossvalidations (crossval_k)
+        config['%err'] = config['%err'] / crossval_k
+else:
+    for model_nr in range(nr_of_models):
+        # This function assigns the values from the config file about the hyperparameters to the respective variables
+        hyperparams = assign_hyperparameters_from_config(config, model_nr, amount_of_rows)
+
+        model_name = hyperparams['model_name']
+        nr_epochs = hyperparams['nr_epochs']
+        noise_stddev = hyperparams['noise_stddev']
+        learning_rate = hyperparams['learning_rate']
+        decay_rate = hyperparams['decay_rate']
+
+        # The print statement below is to separate the different terminal sections for the models.
+        print("\n\n############################################################################################\n")
+        print(f"Model: {model_name}\n")         # To assign potential terminal messages to a model.
+
+        model, optimizer, criterion, train_loader, dev_loader, x_dev_tensor, y_dev_tensor = prepare_model_training(hyperparams, train_dev_dataframes, input_size)
+
+        inside_optuna = False
+        fig = train_and_optionally_plot(model, train_loader, nr_epochs, optimizer, criterion, x_dev_tensor, y_dev_tensor, noise_stddev, learning_rate, decay_rate, inside_optuna, model_name, timestamp, show_plots)
+        loss_vs_epoch_figures.append(fig)
+
+        ten_examples_model_predictions, config = evaluate_model(model, x_dev, y_dev, model_nr, config)
+        examples_model_predictions[model_name] = ten_examples_model_predictions                    # Store the predictions in a hash for the pdf.
 
 ##################################################
 
